@@ -34,7 +34,7 @@ public final class Checker implements Visitor {
 			}
 		}
 		
-		return null;
+		return program;
 	}
 
 	public Object visitVariableGlobalDefinition(VariableGlobalDefinition var, Object arg) throws SemanticException {
@@ -66,22 +66,19 @@ public final class Checker implements Visitor {
 	}
 
 	public Object visitIntVariableDefinition(IntVariableDefinition intVarDef, Object arg) throws SemanticException {
-		
+
 		this.identificationTable.enter(intVarDef.getIdentifier().spelling, intVarDef);
-		
 		Expression e = intVarDef.getExpression();
-		
+	
 		if(e != null){
-			if(e instanceof )
+			e.visit(this, null);
 		}
 		
 		
-		return null;
+		return intVarDef;
 	}
 
-	public Object visitBoolVariableDefinition(
-			BoolVariableDefinition boolVarDef, Object arg)
-			throws SemanticException {
+	public Object visitBoolVariableDefinition(BoolVariableDefinition boolVarDef, Object arg) throws SemanticException {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -107,7 +104,7 @@ public final class Checker implements Visitor {
 			}
 		}
 		
-		return null;
+		return procDef;
 	}
 
 	public Object visitParametersPrototype(ParametersPrototype params,
@@ -116,14 +113,12 @@ public final class Checker implements Visitor {
 		return null;
 	}
 
-	public Object visitAssignmentCommand(AssignmentCommand assign, Object arg)
-			throws SemanticException {
+	public Object visitAssignmentCommand(AssignmentCommand assign, Object arg) throws SemanticException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-	public Object visitCallCommand(CallCommand callCmd, Object arg)
-			throws SemanticException {
+	public Object visitCallCommand(CallCommand callCmd, Object arg)	throws SemanticException {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -176,28 +171,41 @@ public final class Checker implements Visitor {
 		return null;
 	}
 
-	public Object visitExpression(Expression expression, Object arg)
-			throws SemanticException {
-		// TODO Auto-generated method stub
-		return null;
+	public Object visitExpression(Expression expression, Object arg) throws SemanticException {
+		
+		ExpressionArithmetic expAr = expression.getExpressionArithmeticLeft();
+		
+		expAr.visit(this, null);
+		
+				
+		return expression;
 	}
 
-	public Object visitExpressionArithmetic(ExpressionArithmetic expAri,
-			Object arg) throws SemanticException {
-		// TODO Auto-generated method stub
-		return null;
+	public Object visitExpressionArithmetic(ExpressionArithmetic expAri, Object arg) throws SemanticException {
+		
+		ExpressionMultiplication expMul = expAri.getExpressionMultiplicationLeft();
+		expMul.visit(this, null);
+
+		return expAri;
 	}
 
-	public Object visitExpressionMultiplication(
-			ExpressionMultiplication expMul, Object arg)
-			throws SemanticException {
-		// TODO Auto-generated method stub
-		return null;
+	public Object visitExpressionMultiplication(ExpressionMultiplication expMul, Object arg) throws SemanticException {
+		
+		Factor f = expMul.getFactorLeft();
+		f.visit(this, null);
+
+		return expMul;
 	}
 
-	public Object visitFactor(Factor factor, Object arg)
-			throws SemanticException {
-		// TODO Auto-generated method stub
+	public Object visitFactor(Factor factor, Object arg) throws SemanticException {
+		
+		if(factor.getNumber() != null){
+			Number num = factor.getNumber();
+			num.visit(this, null);
+			return num;
+		}
+		
+		
 		return null;
 	}
 
@@ -207,10 +215,9 @@ public final class Checker implements Visitor {
 		return null;
 	}
 
-	public Object visitNumber(Number number, Object obj)
-			throws SemanticException {
-		// TODO Auto-generated method stub
-		return null;
+	public Object visitNumber(Number number, Object obj) throws SemanticException {
+
+		return number.spelling;
 	}
 
 	public Object visitBoolean(Bool bool, Object obj) throws SemanticException {

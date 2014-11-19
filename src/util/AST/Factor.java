@@ -2,6 +2,8 @@ package util.AST;
 
 import java.util.ArrayList;
 
+import checker.SemanticException;
+
 public class Factor extends ExpressionMultiplication{
 
 	private Identifier identifier;
@@ -51,6 +53,24 @@ public class Factor extends ExpressionMultiplication{
 		this.lpar = lpar;
 		this.rpar = rpar;
 	}
+	
+	public Number getNumber(){
+		return this.number;
+	}
+	
+	
+	@Override
+	public String toString(int level) {
+		// TODO Auto-generated method stub
+		return super.toString(level);
+	}
+	
+	@Override
+	public Object visit(Visitor v, Object arg) throws SemanticException {
+		// TODO Auto-generated method stub
+		return v.visitFactor(this, arg);
+	}
+	
 	
 	
 	

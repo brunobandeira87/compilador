@@ -9,7 +9,7 @@ public class Expression extends AST{
 	
 
 	public ExpressionArithmetic getExpressionArithmeticLeft() {
-		return expressionArithmeticLeft;
+		return this.expressionArithmeticLeft;
 	}
 
 	public Operator getOperator() {
@@ -17,7 +17,7 @@ public class Expression extends AST{
 	}
 
 	public ExpressionArithmetic getExpressionArithmeticRight() {
-		return expressionArithmeticRight;
+		return this.expressionArithmeticRight;
 	}
 
 	public Expression(ExpressionArithmetic expressionArithmeticLeft,
