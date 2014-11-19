@@ -1,0 +1,5 @@
+LET START() = VALOF {
+  	// This is a comment, but the "/" in "10 / 2" should not be a comment.
+
+	RESULTIS 10 / 2
+}

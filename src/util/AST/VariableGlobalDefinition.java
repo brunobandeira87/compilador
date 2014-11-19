@@ -1,0 +1,41 @@
+package util.AST;
+
+import checker.SemanticException;
+import scanner.TokenKind;
+
+
+public class VariableGlobalDefinition extends AST{
+
+	private ReservedWord reserverdWord;
+	private VariableDefinition variableDefinition;
+	
+	
+	public VariableGlobalDefinition(VariableDefinition variableDefinition) {
+		this.reserverdWord = new ReservedWord(TokenKind.GLOBAL.toString()); 
+		this.variableDefinition = variableDefinition;
+	}
+	
+	public ReservedWord getReservedWord(){
+		return this.reserverdWord;
+	}
+	
+	public VariableDefinition getVariableDefinition(){
+		return this.variableDefinition;
+	}
+	
+	@Override
+	public String toString(int level) {
+		String rw = reserverdWord.spelling;
+		VariableDefinition var = this.variableDefinition;
+		return null;
+	}
+	
+	@Override
+	public Object visit(Visitor v, Object arg) throws SemanticException {
+		// TODO Auto-generated method stub
+		return v.visitVariableGlobalDefinition(this, arg);
+	}
+	
+	
+
+}

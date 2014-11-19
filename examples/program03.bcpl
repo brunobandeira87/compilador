@@ -1,0 +1,7 @@
+LET START() = VALOF {
+    WHILE (TRUE) {
+		WRITEF("This should fail. We don't accept string literals.")
+    }
+
+    RESULTIS 0
+}

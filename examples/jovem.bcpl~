@@ -1,0 +1,21 @@
+LET INT main(INT a, BOOL b) = VALOF{
+        LET INT u = 2;
+        LET BOOL n = FALSE;
+        WHILE(TRUE){
+                b = FALSE;
+                CALL xovem(b);
+        }
+        RESULTIS 0;
+}
+
+AND VOID juu(INT x, BOOL a, INT z) BE {
+        LET INT b = 3;
+        LET INT y = 3-5;
+        
+        WHILE(TRUE){
+                BREAK;
+        }
+}
+
+
+

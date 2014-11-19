@@ -1,0 +1,11 @@
+LET start() = VALOF {
+	LET variableA = 1
+	LET variableB = 2
+	
+	IF (variableA > variableB) {
+		RESULTIS TRUE;
+	}
+	ELSE {
+	 	RESULTIS FALSE;
+	}
+}

@@ -1,0 +1,17 @@
+LET INT main(INT mago, BOOL gordo, INT sangue) = VALOF {
+        IF(a == 2){
+                WRITEF(ALO);
+                WHILE(TRUE){
+                        CALL FUNC(a);
+                }
+        }
+        RESULTIS 0;
+}
+
+AND BOOL teste() = VALOF {
+        WHILE(a < 10){
+                IF(x){
+                        CALL main();
+                }
+        }
+}
