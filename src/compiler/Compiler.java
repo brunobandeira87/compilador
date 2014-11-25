@@ -55,13 +55,15 @@ public class Compiler {
 			if (astRoot != null) {
 				System.out.println(astRoot.toString(0));
 			}
-			
+		
 			Checker checker = new Checker();
 			try{
 				checker.check(astRoot);
+				System.out.println("HA");
 			} catch(SemanticException e){
 				System.out.println(e.getMessage().toString());
 			}
+			
 		}
 		catch (SyntacticException e) {
 

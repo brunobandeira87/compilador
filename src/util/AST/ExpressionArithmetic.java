@@ -28,10 +28,12 @@ public class ExpressionArithmetic extends AST{
 		this.expressionMultiplicationLeft = expressionMultiplicationLeft;
 		this.operadores = operadores;
 		this.expressionMultiplicationOthers = expressionMultiplicationOthers;
+		
 	}
 
 	public ExpressionArithmetic(ExpressionMultiplication expressionMultiplicationLeft) {
 		this.expressionMultiplicationLeft = expressionMultiplicationLeft;
+		super.tipo = this.expressionMultiplicationLeft.tipo;
 	}
 	
 	@Override
@@ -42,6 +44,10 @@ public class ExpressionArithmetic extends AST{
 	@Override
 	public Object visit(Visitor v, Object arg) throws SemanticException {
 		return v.visitExpressionArithmetic(this, arg);
+	}
+	
+	public String getTipo(){
+		return this.tipo;
 	}
 	
 }

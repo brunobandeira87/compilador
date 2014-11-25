@@ -133,21 +133,22 @@ public class Parser {
 		Expression expression;
 		Identifier identifier;
 		Terminal equalSign;
-		Terminal tipo;
+		
 		
 		if(this.currentToken.getKind() == TokenKind.INT){
-			tipo = new Tipo(this.currentToken.getKind().toString());
+			
 			accept(TokenKind.INT);
-			identifier = new Identifier(this.currentToken.getKind().toString());
+			identifier = new Identifier(this.currentToken.getSpelling());
 			accept(TokenKind.IDENTIFIER);
-			equalSign = new Operator(this.currentToken.getKind().toString());
+			equalSign = new Operator(this.currentToken.getSpelling());
 			accept(TokenKind.OP_ATTR);
 			expression = parseExpression();
 		}else{
 			throw new SyntacticException("ERROR!", currentToken);
 		}
-		accept(TokenKind.SEMICOL);
-		intVariableDefinitionAST = new IntVariableDefinition(tipo, identifier, equalSign, expression);
+		if(this.currentToken.getKind() == TokenKind.SEMICOL)
+			accept(TokenKind.SEMICOL);
+		intVariableDefinitionAST = new IntVariableDefinition(identifier, equalSign, expression);
 		return intVariableDefinitionAST;
 		
 	}
@@ -155,24 +156,24 @@ public class Parser {
 	private BoolVariableDefinition parseBoolVariableDefinition() throws SyntacticException{
 		
 		BoolVariableDefinition boolVariableDefinitionAST;
-		Terminal tipo, equalSign;
+		
 		Identifier identifier;
 		Expression expression;
 		
 		if(this.currentToken.getKind() == TokenKind.BOOL){
-			tipo = new Tipo(this.currentToken.getKind().toString());
+			
 			accept(TokenKind.BOOL);
-			identifier = new Identifier(this.currentToken.getKind().toString());
+			identifier = new Identifier(this.currentToken.getSpelling());
 			accept(TokenKind.IDENTIFIER);
-			equalSign = new Operator(this.currentToken.getKind().toString());
 			accept(TokenKind.OP_ATTR);
 			expression = parseExpression();
 		}
 		else{
 			throw new SyntacticException("ERROR!", currentToken);
 		}
-		accept(TokenKind.SEMICOL);
-		boolVariableDefinitionAST = new BoolVariableDefinition(equalSign, tipo, identifier, expression);
+		if(this.currentToken.getKind() == TokenKind.SEMICOL)
+			accept(TokenKind.SEMICOL);
+		boolVariableDefinitionAST = new BoolVariableDefinition(identifier, expression);
 		return boolVariableDefinitionAST;
 	}
 	
@@ -231,7 +232,7 @@ public class Parser {
 		switch(this.currentToken.getKind()){
 			case INT:
 			case BOOL:
-				tipo = new Tipo(this.currentToken.getSpelling());
+				tipo = new Tipo(this.currentToken.getKind().toString(), this.currentToken.getSpelling());
 				acceptIt();
 				identifier = new Identifier(this.currentToken.getSpelling());
 				accept(TokenKind.IDENTIFIER);
@@ -254,7 +255,7 @@ public class Parser {
 				}
 				
 				accept(TokenKind.RCURL);
-				funcAST = new FunctionDefinition(tipo, identifier);
+				funcAST = new FunctionDefinition(identifier, parametersPrototype, variableDefinition , command);
 				
 			break;
 			
@@ -276,7 +277,7 @@ public class Parser {
 		boolean hasParams, hasVar, hasCommand;
 		hasParams = hasVar = hasCommand = false;
 		
-		tipo = new Tipo(this.currentToken.getSpelling());
+		tipo = new Tipo(this.currentToken.getKind().toString(), this.currentToken.getSpelling());
 		accept(TokenKind.VOID);
 		identifier = new Identifier(this.currentToken.getSpelling());
 		accept(TokenKind.IDENTIFIER);
@@ -350,16 +351,16 @@ public class Parser {
 		switch(this.currentToken.getKind()){
 			case INT:
 			case BOOL:
-				tipo.add(new Tipo(this.currentToken.getSpelling()));
+				tipo.add(new Tipo(this.currentToken.getKind().toString(), this.currentToken.getSpelling()));
 				acceptIt();
 				identifier.add(new Identifier(this.currentToken.getSpelling()));
 				accept(TokenKind.IDENTIFIER);
 				while(this.currentToken.getKind() == TokenKind.VIRG){
-					virg.add(new Operator(TokenKind.VIRG.toString()));
+					virg.add(new Operator(this.currentToken.getSpelling()));
 					acceptIt();
 					if(this.currentToken.getKind() == TokenKind.INT ||
 							this.currentToken.getKind() == TokenKind.BOOL){
-						tipo.add(new Tipo(this.currentToken.getKind().toString()));
+						tipo.add(new Tipo(this.currentToken.getKind().toString(), this.currentToken.getSpelling()));
 						acceptIt();
 						identifier.add(new Identifier(this.currentToken.getSpelling()));
 						accept(TokenKind.IDENTIFIER);
@@ -435,13 +436,14 @@ public class Parser {
 		accept(TokenKind.IDENTIFIER);
 		accept(TokenKind.OP_ATTR);
 		if(this.currentToken.getKind() == TokenKind.CALL){
-			parseCallCommand();
+			callCommand = parseCallCommand();
 			hasCallCommand = true;
 		}
 		else{
-			parseExpression();
+			expression = parseExpression();
 		}
-		accept(TokenKind.SEMICOL);
+		if(this.currentToken.getKind() == TokenKind.SEMICOL)
+			accept(TokenKind.SEMICOL);
 		
 		if(hasCallCommand){
 			assignmentCommandAST = new AssignmentCommand(identifier, callCommand);
@@ -456,7 +458,8 @@ public class Parser {
 		Expression expression;
 		accept(TokenKind.RESULTIS);
 		expression = parseExpression();
-		accept(TokenKind.SEMICOL);
+		if(this.currentToken.getKind() == TokenKind.SEMICOL)
+			accept(TokenKind.SEMICOL);
 		resultIsCommandAST = new ResultIsCommand(expression);
 		return resultIsCommandAST;
 	}
@@ -536,9 +539,10 @@ public class Parser {
 		boolean hasParams = false;
 		
 		accept(TokenKind.CALL);
+		identifier = new Identifier(this.currentToken.getSpelling());
 		accept(TokenKind.IDENTIFIER);
 		accept(TokenKind.LPAR);		
-		while(this.currentToken.getKind() == TokenKind.IDENTIFIER){
+		while(this.currentToken.getKind() == TokenKind.IDENTIFIER || this.currentToken.getKind() == TokenKind.NUMBER){
 			params = (parseParametersCallCommand());
 			hasParams = true;
 		}
@@ -555,16 +559,41 @@ public class Parser {
 	
 	private ParametersCallCommand parseParametersCallCommand() throws SyntacticException{
 		ParametersCallCommand params ;
-		ArrayList<Identifier> identifier = new ArrayList<Identifier>();
+		ArrayList<Factor> identifier = new ArrayList<Factor>();
 		ArrayList<Operator> virg = new ArrayList<Operator>();
-		
-		identifier.add(new Identifier(this.currentToken.getSpelling()));
-		accept(TokenKind.IDENTIFIER);
+		if(this.currentToken.getKind() == TokenKind.IDENTIFIER){
+			//identifier.add(new Identifier(this.currentToken.getSpelling()));
+			//accept(TokenKind.IDENTIFIER);
+			identifier.add(parseExpression());
+		}
+		else if(this.currentToken.getKind() == TokenKind.NUMBER){
+			identifier.add(parseExpression());
+			//accept(TokenKind.NUMBER);
+		}
+		else if(this.currentToken.getKind() == TokenKind.TRUE || this.currentToken.getKind() == TokenKind.FALSE){
+			identifier.add(parseExpression());
+		}
 		while(this.currentToken.getKind() == TokenKind.VIRG){
 			virg.add(new Operator(this.currentToken.getSpelling()));
 			accept(TokenKind.VIRG);
-			identifier.add(new Identifier(this.currentToken.getSpelling()));
-			accept(TokenKind.IDENTIFIER);
+			identifier.add(parseExpression());
+			//acceptIt();
+			
+			/*
+			if(this.currentToken.getKind() == TokenKind.IDENTIFIER){
+				//identifier.add(new Identifier(this.currentToken.getSpelling()));
+				;
+				accept(TokenKind.IDENTIFIER);
+			}else if(this.currentToken.getKind() == TokenKind.NUMBER){
+				identifier.add(new Number(this.currentToken.getSpelling()));
+				accept(TokenKind.NUMBER);
+			}else if(this.currentToken.getKind() == TokenKind.TRUE || 
+					this.currentToken.getKind() == TokenKind.FALSE ){
+				identifier.add(new Bool(this.currentToken.getSpelling()));
+				acceptIt();
+			}
+			*/
+			
 		}
 		
 		params = new ParametersCallCommand(identifier, virg);
@@ -602,7 +631,7 @@ public class Parser {
 			while(this.currentToken.getKind() == TokenKind.IF || this.currentToken.getKind() == TokenKind.WHILE ||
 					this.currentToken.getKind() == TokenKind.WRITEF || this.currentToken.getKind() == TokenKind.IDENTIFIER || 
 					this.currentToken.getKind() == TokenKind.CALL || this.currentToken.getKind() == TokenKind.BREAK ||
-					this.currentToken.getKind() == TokenKind.CONTINUE){
+					this.currentToken.getKind() == TokenKind.CONTINUE || this.currentToken.getKind() == TokenKind.RESULTIS){
 				commandElse.add(parseCommand());
 				hasCommandElse = true;
 			}
@@ -647,11 +676,13 @@ public class Parser {
 	
 	//expression               ::=  expArit (Op_Rel expArit)?
 	private Expression parseExpression() throws SyntacticException{
-		ExpressionArithmetic expressionArithmeticLeft;
-		ExpressionArithmetic expressionArithmeticRight;
-		Operator operador;
+		
+		ExpressionArithmetic left;
+		Operator operador = null;
+		ExpressionArithmetic right = null;
 		Expression expressionAST;
-		expressionArithmeticLeft = parseExpArit();
+		left = parseExpArit();
+		
 		switch(this.currentToken.getKind()){
 			case EQUALLOGICAL:
 			case LT:
@@ -660,15 +691,17 @@ public class Parser {
 			case GTE:
 			case NOTEQUALLOGICAL:
 			case OP_RELATION:
-				operador = new Operator(this.currentToken.getKind().toString());
+				operador = new Operator(this.currentToken.getSpelling());
 				acceptIt();
-				expressionArithmeticRight = parseExpArit();
-				expressionAST = new Expression(expressionArithmeticLeft, operador, expressionArithmeticRight);
+				right = parseExpArit();
+				
 			break;
 			
 			default:
-				expressionAST = new Expression(expressionArithmeticLeft);
 		}
+		if(this.currentToken.getKind() == TokenKind.SEMICOL)
+			accept(TokenKind.SEMICOL);
+		expressionAST = new Expression(left, operador, right);
 		
 		return expressionAST;
 	}
@@ -679,33 +712,70 @@ public class Parser {
 		ArrayList<Operator> operadores = new ArrayList<Operator>() ;
 		ArrayList<ExpressionMultiplication> expressionMultiplicationOthers = new ArrayList<ExpressionMultiplication>();
 		boolean hasMore = false;
+		
 		expressionMultiplicationLeft = parseExpMult();
+		
 		while(this.currentToken.getKind() == TokenKind.PLUSSIGN ||
 				this.currentToken.getKind() == TokenKind.MINUSSIGN){
-			operadores.add(new Operator(this.currentToken.getSpelling().toString()));
+			operadores.add(new Operator(this.currentToken.getSpelling()));
 			acceptIt();
 			expressionMultiplicationOthers.add(parseExpMult());
+		}
+		
+		expressionArithmeticAST = new ExpressionArithmetic(expressionMultiplicationLeft, operadores, expressionMultiplicationOthers);
+		
+		return expressionArithmeticAST;
+		
+		
+/*		
+		expressionMultiplicationLeft = parseExpMult();
+		expressionMultiplicationOthers.add(parseExpMult());
+		expressionArithmeticAST = new ExpressionArithmetic(expressionMultiplicationLeft, operadores, expressionMultiplicationOthers);
+ * 
+ * while(this.currentToken.getKind() == TokenKind.PLUSSIGN ||
+				this.currentToken.getKind() == TokenKind.MINUSSIGN){
+			operadores.add(new Operator(this.currentToken.getKind().toString(), this.currentToken.getSpelling()));
+			acceptIt();
 			hasMore = true;
 		}
 		if(hasMore == true){
-			expressionArithmeticAST = new ExpressionArithmetic(expressionMultiplicationLeft, operadores, expressionMultiplicationOthers);
 		}else{
 			expressionArithmeticAST = new ExpressionArithmetic(expressionMultiplicationLeft);
-		}
+		}*/
 		
-		return expressionArithmeticAST;
+		//return expressionArithmeticAST;
 	}
 	
 	private ExpressionMultiplication parseExpMult() throws SyntacticException{
+		Factor left = null;
+		ArrayList<Factor> factor = new ArrayList<Factor>();
+		ArrayList<ExpressionMultiplication> expMult;
+		ArrayList<Operator> operator = new ArrayList<Operator>(); 
+		left = parseFactor();
+		
+		while(this.currentToken.getKind() == TokenKind.DIVSSIGN ||
+				this.currentToken.getKind() == TokenKind.MULTSIGN)	{
+			operator.add(new Operator(this.currentToken.getSpelling()));
+			acceptIt();
+			factor.add(parseFactor());
+			
+		
+			
+		}
+		
+		ExpressionMultiplication exp = new ExpressionMultiplication(left, operator, factor);
+		return exp;
+		
+		
+		
+		/*
 		ExpressionMultiplication expressionMultiplicationAST;
 		Factor factorLeft;
 		ArrayList<Operator> operadores = new ArrayList<Operator>();
 		ArrayList<Factor> factorOthers = new ArrayList<Factor>();
 		factorLeft = parseFator();
 		boolean hasMore = false;
-		while(this.currentToken.getKind() == TokenKind.DIVSSIGN ||
-				this.currentToken.getKind() == TokenKind.MULTSIGN){
-			operadores.add(new Operator(this.currentToken.getKind().toString()));
+			operadores.add(new Operator(this.currentToken.getKind().toString(), this.currentToken.getSpelling()));
 			acceptIt();
 			factorOthers.add(parseFator());
 			hasMore = true;
@@ -718,10 +788,11 @@ public class Parser {
 		}
 		
 		return expressionMultiplicationAST;
+		*/
 	}
 	
 	/*
-	 * Fator                    ::=     Identifier (e-vazio | '(' parametersCallCommand? ')')
+	 * Fator             ::=     Identifier (e-vazio | '(' parametersCallCommand? ')')
                          |       Number
                          |       Boolean
                          |       '(' expression ')'
@@ -729,57 +800,84 @@ public class Parser {
 	 * 
 	 * */
 	
-	private Factor parseFator() throws SyntacticException{
+	private Factor parseFactor() throws SyntacticException{
 		Factor factorAST = null;
-		Operator lpar, rpar;
+		
+		switch(this.currentToken.getKind()){
+			case IDENTIFIER: 
+				//factorAST.setIdentifier(new Identifier(this.currentToken.getKind().toString(), this.currentToken.getSpelling()));
+				factorAST = new Identifier(this.currentToken.getSpelling());
+				accept(TokenKind.IDENTIFIER);
+				
+			break;
+			
+			case NUMBER:
+				//factorAST.setNumber(new Number(this.currentToken.getKind().toString(), this.currentToken.getSpelling()));
+				factorAST = new Number(this.currentToken.getSpelling());
+				accept(TokenKind.NUMBER);
+			break;
+			
+			case TRUE:
+			case FALSE:
+				//factorAST.setBool(new Bool(this.currentToken.getKind().toString(), this.currentToken.getSpelling()));
+				factorAST = new Bool(this.currentToken.getSpelling());
+				acceptIt();
+			break;
+			
+			case CALL:
+				AssignmentCallCommand ass = new AssignmentCallCommand(parseCallCommand());
+				return ass;	
+			case LPAR:
+				acceptIt();
+				factorAST = (parseExpression());
+				accept(TokenKind.RPAR);
+			break;
+			
+			default:
+				factorAST = null;
+			break;
+		}
+		
+		return factorAST;
+		
+		/*
+		
+		CallCommand callCommand;
+		
 		switch(this.currentToken.getKind()){
 			
 			case IDENTIFIER:
+				Identifier identifier = new Identifier(this.currentToken.getKind().toString(), this.currentToken.getSpelling());
 				accept(TokenKind.IDENTIFIER);
-				if(this.currentToken.getKind() == TokenKind.EOL){
-					Identifier identifier = new Identifier(this.currentToken.getKind().toString());
-					factorAST = new Factor(null, null, null, identifier);
-					accept(TokenKind.EOL);
-					
-				}else if(this.currentToken.getKind() == TokenKind.LPAR){
-					lpar = new Operator(this.currentToken.getKind().toString());
-					accept(TokenKind.LPAR);
-					if(this.currentToken.getKind() == TokenKind.IDENTIFIER){
-						parseParametersCallCommand();
-						rpar = new Operator(this.currentToken.getKind().toString());
-						accept(TokenKind.RPAR);
-						
-					}else{
-						rpar = new Operator(this.currentToken.getKind().toString());
-						accept(TokenKind.RPAR);
-						
-					}
-					
-				}
+				factorAST = new Factor(null, null, null, identifier);
+
 			break;
 		
 			case NUMBER:
-				Number number = new Number(this.currentToken.getKind().toString());
+				Number number = new Number(this.currentToken.getKind().toString(), this.currentToken.getSpelling());
 				accept(TokenKind.NUMBER);
 				factorAST = new Factor(null, null, null, number);
 			break;
 			
 			case TRUE:
 			case FALSE:
-				Bool bool = new Bool(this.currentToken.getKind().toString());
+				Bool bool = new Bool(this.currentToken.getKind().toString(), this.currentToken.getSpelling());
 				acceptIt();
 				factorAST = new Factor(null, null, null, bool);
 			break;
 						
 			case LPAR:
-				lpar = new Operator(this.currentToken.getKind().toString());
 				accept(TokenKind.LPAR);
 				Expression expression = parseExpression();
-				rpar = new Operator(this.currentToken.getKind().toString());
 				accept(TokenKind.RPAR);
-				factorAST = new Factor(null, null, null, expression, lpar, rpar);
+				factorAST = new Factor(null, null, null, expression);
 			break;
-
+			
+			case CALL:
+				//LET INT X = CALL m(y, z);
+				callCommand = parseCallCommand();
+				factorAST = new Factor(null, null, null, callCommand);
+				
 			default:
 	
 				break;
@@ -787,8 +885,8 @@ public class Parser {
 			
 		}
 		return factorAST;
+		 */
 	}
-	
 		
 }
 	

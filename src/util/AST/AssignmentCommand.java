@@ -20,6 +20,7 @@ public class AssignmentCommand extends Command{
 		this.identifier = identifier;
 		this.expression = expression;
 		this.setEqualSign();
+		super.tipo = this.expression.tipo;
 	}
 	
 	public AssignmentCommand(Identifier identifier, CallCommand callCommand){
@@ -28,6 +29,13 @@ public class AssignmentCommand extends Command{
 		this.setEqualSign();
 	}
 	
+	public Identifier getIdentifier(){
+		return this.identifier;
+	}
+	
+	public Expression getExpression(){
+		return this.expression;
+	}
 	@Override
 	public Object visit(Visitor v, Object arg) throws SemanticException {
 		return v.visitAssignmentCommand(this, arg);

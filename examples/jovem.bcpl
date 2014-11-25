@@ -1,3 +1,9 @@
+GLOBAL LET INT x = 5;
 LET VOID main()  BE {
-   LET INT a = 2;
+	x = 10-3*2;
+	
+	WHILE(x == 10){
+		BREAK;
+	}
+
 }

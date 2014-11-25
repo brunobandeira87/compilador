@@ -45,6 +45,18 @@ public class IfCommand extends Command{
 	public IfCommand(Expression expression) {
 		this.expression = expression;
 	}
+	
+	public Expression getExpression(){
+		return this.expression;
+	}
+	
+	public ArrayList<Command> getCommand(){
+		return this.command;
+	}
+	
+	public ElseCommand getElse(){
+		return this.elseCommand;
+	}
 
 	@Override
 	public String toString(int level) {

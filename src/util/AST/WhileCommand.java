@@ -32,6 +32,15 @@ public class WhileCommand extends Command {
 		this.expression = expression;
 		this.command = command;
 	}
+	
+	public Expression getExpression(){
+		return this.expression;
+	}
+	
+	public ArrayList<Command> getCommand(){
+		return this.command;
+	}
+	
 	@Override
 	public String toString(int level) {
 		// TODO Auto-generated method stub

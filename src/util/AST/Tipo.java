@@ -4,8 +4,9 @@ import checker.SemanticException;
 
 public class Tipo extends Terminal{
 
-	public Tipo(String spelling){
+	public Tipo(String spelling, String value){
 		super.spelling = spelling;
+		super.value = value;
 	}
 
 	@Override
@@ -19,4 +20,14 @@ public class Tipo extends Terminal{
 		// TODO Auto-generated method stub
 		return v.visitTipo(this, arg);
 	}
+	@Override
+	public boolean equals(Terminal obj) {
+		if(this.spelling.toString().equals(obj.spelling.toString())){
+			return true;
+		}else{
+			return false;
+		}
+		
+	}
+	
 }

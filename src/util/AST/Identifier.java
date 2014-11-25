@@ -2,17 +2,24 @@ package util.AST;
 
 import checker.SemanticException;
 
-public class Identifier extends Terminal{
+public class Identifier extends Factor{
 
-	
-	public Identifier(String spelling){
-		super.spelling = spelling;
+	private String value;
+	//private String spelling;
+		
+	public Identifier(String value){
+		
+		this.value = value;
 	}
 	@Override
 	public String toString(int level) {
 		// TODO Auto-generated method stub
 		//super.getSpaces(level); 
-		return super.spelling;
+		return this.value;
+	}
+	
+	public String getValue(){
+		return this.value;
 	}
 	
 	@Override
@@ -20,5 +27,21 @@ public class Identifier extends Terminal{
 		// TODO Auto-generated method stub
 		return v.visitIdentifier(this, arg);
 	}
+	
+	@Override
+	public String getTipo() {
+		// TODO Auto-generated method stub
+		return this.tipo;
+	}
+	@Override
+	public boolean equals(Object obj) {
+		if(obj instanceof Identifier){
+			return this.tipo.equals(((Identifier)obj).tipo);
+		}else{
+			return false;
+		}
+	}
+
+	
 }
 

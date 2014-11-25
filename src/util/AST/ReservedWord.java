@@ -21,5 +21,11 @@ public class ReservedWord extends Terminal {
 		return v.visitReservedWord(this, arg);
 	}
 	
+	@Override
+	public boolean equals(Terminal term) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
 
 }

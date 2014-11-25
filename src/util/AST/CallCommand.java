@@ -42,6 +42,9 @@ public class CallCommand extends Command{
 	}
 
 
+	public Identifier getIdentifier(){
+		return this.identifier;
+	}
 
 	@Override
 	public String toString(int level) {

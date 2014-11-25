@@ -7,12 +7,12 @@ import checker.SemanticException;
 public class IntVariableDefinition extends VariableDefinition{
 
 	private Terminal equalSign ;
-	private Terminal tipo;
+	private String tipo;
 	private Identifier identifier;
 	private Expression expression;
 	
-	public IntVariableDefinition(Terminal tipo, Identifier identifier, Terminal equalSign, Expression expression){
-		this.tipo = tipo;
+	public IntVariableDefinition(Identifier identifier, Terminal equalSign, Expression expression){
+		this.tipo = "INT";
 		this.identifier = identifier;
 		this.equalSign = equalSign;
 		this.expression = expression;
@@ -22,6 +22,13 @@ public class IntVariableDefinition extends VariableDefinition{
 		return this.expression;
 	}
 	
+	public String getTipo(){
+		return this.tipo;
+	} 
+	
+	public Terminal getSign(){
+		return this.equalSign;
+	}
 	@Override
 	
 	public String toString(int level) {
@@ -40,5 +47,9 @@ public class IntVariableDefinition extends VariableDefinition{
 		// TODO Auto-generated method stub
 		return this.identifier;
 	}
+	
+	
+	
+	
 
 }

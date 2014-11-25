@@ -18,7 +18,7 @@ public class ProcedureDefinition extends CallableDefinition{
 	private ParametersPrototype params;
 	
 	private void setOperator(){
-		this.tipo = new Tipo(TokenKind.VOID.toString());
+		this.tipo = new Tipo(TokenKind.VOID.toString(), TokenKind.VOID.toString());
 		this.terminal = new ArrayList<Terminal>();
 		this.terminal.add( new Operator("("));
 		this.terminal.add( new Operator(")"));
@@ -83,6 +83,10 @@ public class ProcedureDefinition extends CallableDefinition{
 	
 	public ArrayList<VariableDefinition> getVariableDefinition(){
 		return this.variableDefinition;
+	}
+	
+	public ArrayList<Command> getCommands(){
+		return this.command;
 	}
 	
 	@Override

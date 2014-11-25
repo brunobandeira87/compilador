@@ -4,20 +4,27 @@ import checker.SemanticException;
 
 public class BoolVariableDefinition extends VariableDefinition {
 
-	private Terminal equalSign ;
-	private Terminal tipo;
+	private Operator equalSign ;
+	private String tipo;
 	private Identifier identifier;
 	private Expression expression;
 	
 
-	public BoolVariableDefinition(Terminal equalSign, Terminal tipo,
-			Identifier identifier, Expression expression) {
+	public BoolVariableDefinition(Identifier identifier, Expression expression) {
 		//super();
-		this.equalSign = equalSign;
-		this.tipo = tipo;
+		this.equalSign = new Operator("=");
+		
+		this.tipo = "BOOL";
 		this.identifier = identifier;
 		this.expression = expression;
 	}
+	public String getTipo(){
+		return this.tipo;
+	}
+	public Expression getExpression(){
+		return this.expression;
+	}
+	
 	@Override
 	public Identifier getIdentifier(){
 		return this.identifier;

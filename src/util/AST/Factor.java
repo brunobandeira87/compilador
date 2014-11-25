@@ -4,58 +4,87 @@ import java.util.ArrayList;
 
 import checker.SemanticException;
 
-public class Factor extends ExpressionMultiplication{
-
+public abstract class Factor extends AST{
+	/*
+	private Identifier identifier;
+	private Number number;
+	private Expression expression;
+	private CallCommand callcomand;
+	private Bool bool;
+	
+	public void setIdentifier(Identifier identifier){
+		this.identifier = identifier;
+	}
+	
+	public void setNumber(Number number){
+		this.number = number;
+	}
+	
+	public void setExpression(Expression expression){
+		this.expression = expression;
+	}
+	
+	public void setCallCommand(CallCommand callcommand){
+		this.callcomand = callcommand;
+	}
+	
+	public void setBool(Bool bool){
+		this.bool = bool;
+	}
+	
+/*
 	private Identifier identifier;
 	private Number number;
 	private Bool bool; 
 	private Expression expression;
-	private ParametersCallCommand parametersCallCommand;
-	private Operator lpar, rpar;
+	private CallCommand callCommand;
+	private ArrayList<Operator> par = new ArrayList<Operator>();
 	
 
-	public Factor(Factor factorLeft, ArrayList<Operator> operadores,
-			ArrayList<Factor> factorOthers, Identifier identifier) {
+	public Factor(Factor factorLeft, ArrayList<Operator> operadores, ArrayList<Factor> factorOthers, Identifier identifier) {
 		super(factorLeft, operadores, factorOthers);
 		this.identifier = identifier;
+		super.tipo = this.identifier.spelling;
 	}
 
 
-	public Factor(Factor factorLeft, ArrayList<Operator> operadores,
-			ArrayList<Factor> factorOthers, Identifier identifier,
-			ParametersCallCommand parametersCallCommand, Operator lpar, Operator rpar) {
+	public Factor(Factor factorLeft, ArrayList<Operator> operadores, ArrayList<Factor> factorOthers,CallCommand callCommand) {
 		super(factorLeft, operadores, factorOthers);
-		this.identifier = identifier;
-		this.parametersCallCommand = parametersCallCommand;
-		this.lpar = lpar;
-		this.rpar = rpar;
+		this.callCommand = callCommand;
 	}
 
 
-	public Factor(Factor factorLeft, ArrayList<Operator> operadores,
-			ArrayList<Factor> factorOthers, Number number) {
+	public Factor(Factor factorLeft, ArrayList<Operator> operadores, ArrayList<Factor> factorOthers, Number number) {
 		super(factorLeft, operadores, factorOthers);
 		this.number = number;
+		super.tipo = this.number.getTipo();
 	}
 
 
-	public Factor(Factor factorLeft, ArrayList<Operator> operadores,
-			ArrayList<Factor> factorOthers, Bool bool) {
+	public Factor(Factor factorLeft, ArrayList<Operator> operadores, ArrayList<Factor> factorOthers, Bool bool) {
 		super(factorLeft, operadores, factorOthers);
 		this.bool = bool;
+		super.tipo = this.bool.getTipo();
 	}
 
 
-	public Factor(Factor factorLeft, ArrayList<Operator> operadores,
-			ArrayList<Factor> factorOthers, Expression expression, Operator lpar, Operator rpar) {
+	public Factor(Factor factorLeft, ArrayList<Operator> operadores, ArrayList<Factor> factorOthers, Expression expression) {
 		super(factorLeft, operadores, factorOthers);
 		this.expression = expression;
-		this.lpar = lpar;
-		this.rpar = rpar;
+		this.setPar();
 	}
 	
 	public Number getNumber(){
 		return this.number;
+	}
+	
+	public Bool getBool(){
+		return this.bool;
+	}
+	
+	private void setPar(){
+		this.par.add(new Operator("LPAR", "("));
+		this.par.add(new Operator("RPAR", ")"));
 	}
 	
 	
@@ -76,6 +105,11 @@ public class Factor extends ExpressionMultiplication{
 	
 	
 	
+	*/
+
 	
+	public abstract String getTipo();
+
+	public abstract boolean equals(Object obj) ;
 	
 }

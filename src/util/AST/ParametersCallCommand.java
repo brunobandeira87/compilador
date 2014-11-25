@@ -6,17 +6,17 @@ import checker.SemanticException;
 
 public class ParametersCallCommand extends AST {
 
-	private ArrayList<Identifier> identifier;
+	private ArrayList<Factor> identifier;
 	private ArrayList<Operator> terminal;
 	
 
-	public ParametersCallCommand(ArrayList<Identifier> identifier,
+	public ParametersCallCommand(ArrayList<Factor> identifier,
 			ArrayList<Operator> terminal) {
 		this.identifier = identifier;
 		this.terminal = terminal;
 	}
 
-	public ParametersCallCommand(ArrayList<Identifier> identifier) {
+	public ParametersCallCommand(ArrayList<Factor> identifier) {
 		this.identifier = identifier;
 	}
 	

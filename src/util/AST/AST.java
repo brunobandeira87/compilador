@@ -13,6 +13,8 @@ import checker.SemanticException;
  */
 public abstract class AST {
 
+	public String tipo;
+	
 	public String getSpaces(int level) {
 		StringBuffer str = new StringBuffer();
 

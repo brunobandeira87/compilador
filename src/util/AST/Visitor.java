@@ -12,6 +12,8 @@ public interface Visitor {
 	public Object visitFunctionDefintion(FunctionDefinition funcDef, Object arg) throws SemanticException;
 	public Object visitProcedureDefinition(ProcedureDefinition procDef, Object arg) throws SemanticException;
 	public Object visitParametersPrototype(ParametersPrototype params, Object arg) throws SemanticException;
+	//public Object visitCommand(Command cmd, Object arg) throws SemanticException;
+	public Object visitAssignmentCallCommand(AssignmentCallCommand assign, Object arg) throws SemanticException;
 	public Object visitAssignmentCommand(AssignmentCommand assign, Object arg) throws SemanticException;
 	public Object visitCallCommand(CallCommand callCmd, Object arg) throws SemanticException;
 	public Object visitContinueCommand(ContinueCommand continueCmd, Object arg) throws SemanticException;

@@ -2,33 +2,76 @@ package util.AST;
 
 import checker.SemanticException;
 
-public class Expression extends AST{
-	private ExpressionArithmetic expressionArithmeticLeft;
-	private Operator Operator;
-	private ExpressionArithmetic expressionArithmeticRight;
+import java.util.ArrayList;
+
+public class Expression extends Factor{
+
+	private ExpressionArithmetic left;
+	private ExpressionArithmetic right;
+	private Operator operator;
 	
-
-	public ExpressionArithmetic getExpressionArithmeticLeft() {
-		return this.expressionArithmeticLeft;
+	
+	public Expression(ExpressionArithmetic left){
+		this.left = left;
+	}
+	public Expression(ExpressionArithmetic left, Operator operator, ExpressionArithmetic right){
+		this.left = left;
+		this.right = right;
+		this.operator = operator;
+	}
+	
+	public ExpressionArithmetic getLeft(){
+		return this.left;
+	}
+	
+	public ExpressionArithmetic getRight(){
+		return this.right;
+	}
+	
+	public Operator getOperator(){
+		return this.operator;
+	}
+	
+	
+	//private String tipo;
+	/*
+	private ArrayList<ExpressionArithmetic> expressionArithmetic;
+	private ArrayList<Operator> operator;
+	
+	public ArrayList<ExpressionArithmetic> getExpressionArithmeticLeft() {
+		return this.expressionArithmetic;
 	}
 
-	public Operator getOperator() {
-		return Operator;
+	public ArrayList<Operator> getOperator() {
+		return operator;
+	}
+	
+	public Expression(ArrayList<ExpressionArithmetic> expressionArithmetic, ArrayList<Operator> operator){
+		this.expressionArithmetic = expressionArithmetic;
+		this.operator = operator;
 	}
 
-	public ExpressionArithmetic getExpressionArithmeticRight() {
-		return this.expressionArithmeticRight;
-	}
-
-	public Expression(ExpressionArithmetic expressionArithmeticLeft,
-			Operator Operator, ExpressionArithmetic expressionArithmeticRight) {
+/*
+	public Expression(ExpressionArithmetic expressionArithmeticLeft, Operator operator, ExpressionArithmetic expressionArithmeticRight) {
 		this.expressionArithmeticLeft = expressionArithmeticLeft;
-		this.Operator = Operator;
+		this.operator = new ArrayList<Operator>();
+		this.operator.add(operator);
 		this.expressionArithmeticRight = expressionArithmeticRight;
+		super.tipo = this.expressionArithmeticLeft.tipo;
 	}
 	public Expression(ExpressionArithmetic expressionArithmeticLeft) {
 		this.expressionArithmeticLeft = expressionArithmeticLeft;
+		super.tipo = this.expressionArithmeticLeft.tipo;
 	}
+	
+	public Expression(ExpressionArithmetic expressionArithmeticLeft, ArrayList<Operator> operator, ExpressionArithmetic expressionArithmeticRight) {
+		this.expressionArithmeticLeft = expressionArithmeticLeft;
+		this.operator = new ArrayList<Operator>();
+		this.operator = (operator);
+		this.expressionArithmeticRight = expressionArithmeticRight;
+		super.tipo = this.expressionArithmeticLeft.tipo;
+	}
+	*/
 	
 	@Override
 	public String toString(int level) {
@@ -41,6 +84,21 @@ public class Expression extends AST{
 		
 		return v.visitExpression(this, arg);
 	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if(obj instanceof Expression){
+			return this.tipo.equals(((Expression)obj).tipo);
+		}else{
+			return false;
+		}
 
+	}
+	
+	@Override
+	public String getTipo() {
+		// TODO Auto-generated method stub
+		return this.tipo;
+	}
 	
 }
