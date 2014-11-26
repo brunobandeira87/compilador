@@ -24,6 +24,14 @@ public class ParametersPrototype extends AST {
 		
 	}
 	
+	public ArrayList<Tipo> getTipo(){
+		return this.tipo;
+	}
+	
+	public ArrayList<Identifier> getIdentifier(){
+		return this.identifier;
+	}
+	
 	@Override
 	public String toString(int level) {
 		// TODO Auto-generated method stub

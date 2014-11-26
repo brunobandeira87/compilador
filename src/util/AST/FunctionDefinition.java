@@ -88,6 +88,15 @@ public class FunctionDefinition extends CallableDefinition{
 		return this.command;
 	}
 	
+	public ParametersPrototype getParams(){
+		return this.parameters;
+	}
+	
+	public void setParams(ParametersPrototype params){
+		this.parameters = params;
+		
+	}
+	
 	@Override
 	public String toString(int level) {
 		StringBuffer st = new StringBuffer();

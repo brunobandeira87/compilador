@@ -122,7 +122,7 @@ public class Parser {
 			variableDefinitionAST = parseBoolVariableDefinition();
 		}
 		else{
-			throw new SyntacticException("parseVariableDefinition => Unknown Data Type", this.currentToken);
+			throw new SyntacticException("parseVariableDefinition => Unknown Data Type: " + this.currentToken.getSpelling(), this.currentToken);
 		}
 		return variableDefinitionAST;
 	}

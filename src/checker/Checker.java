@@ -1,6 +1,8 @@
 package checker;
 
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.ListIterator;
 import java.util.Vector;
 
 import scanner.TokenKind;
@@ -102,7 +104,6 @@ public final class Checker implements Visitor {
 		ArrayList<CallableDefinition>  callDef = new ArrayList<CallableDefinition>();
 		if(funcProcDef.getCallableDefinition() != null){
 			for(CallableDefinition callTemp : funcProcDef.getCallableDefinition()){
-					
 					this.reference.add(callTemp);
 					this.identificationTable.openScope();
 					callDef.add((CallableDefinition) callTemp.visit(this, arg));
@@ -139,23 +140,6 @@ public final class Checker implements Visitor {
 			throw new SemanticException("visitIntVariableDefinition => Variable \'"  + intVarDef.getIdentifier().getValue() +  "\' already declared.");
 		}
 	
-		//return null;
-		
-		/*
-		Object expression = intVarDef.getExpression().visit(this,arg);
-		
-		if(expression instanceof Number){
-			if(((Number)expression).getTipo().equals(intVarDef.getTipo())){
-				return expression;
-			}
-			else{
-				throw new SemanticException("Wrong attribution between INT and BOOL");
-			}
-		}
-		else{
-			throw new SemanticException("Wrong attribution between INT and BOOL");
-		}
-		*/		
 	}
 
 	public Object visitBoolVariableDefinition(BoolVariableDefinition boolVarDef, Object arg) throws SemanticException {
@@ -173,29 +157,41 @@ public final class Checker implements Visitor {
 				return boolAST;
 			}
 			else{
-				throw new SemanticException("visitBoolVariableDefinition => Type Mismatch");
+				throw new SemanticException("visitBoolVariableDefinition => Type Mismatch. Type passed: \'" + exp.getTipo() +"\'. Type needed: \'BOOL\'");
 			}
 		}
 		else{
-			throw new SemanticException("visitBoolVariableDefinition => Variable already declared.");
+			throw new SemanticException("visitBoolVariableDefinition => Variable \'" + boolVarDef.getIdentifier().getValue() + "\' already declared.");
 		}
 		
 	}
 
 	public Object visitFunctionDefintion(FunctionDefinition funcDef, Object arg) throws SemanticException {
+//		System.out.println(this.identificationTable.getCurrentScope());
 		
 		FunctionDefinition funcDefAST;
 		ArrayList<VariableDefinition> variables = new ArrayList<VariableDefinition>();
 		ArrayList<Command> commands = new ArrayList<Command>();
+		ParametersPrototype params;
 		Vector<Object> refer = new Vector<Object>();
 		refer.add(funcDef);
 		
 		
 		Object temp = this.identificationTable.retrieve(funcDef.getIdentifier().getValue());
 		if(temp == null){
-			//System.out.println("alo " + ((Factor) temp).getTipo());
+			
+			
+			params = funcDef.getParams();
+			Object paramsTemp;
+			if(params != null){
+				paramsTemp = params.visit(this, funcDef);
+				funcDef.setParams((ParametersPrototype)(paramsTemp));
+			}
+			
+			
 			
 			this.identificationTable.enter(funcDef.getIdentifier().getValue(), funcDef);
+			this.identificationTable.openScope();
 			if(funcDef.getVariable() != null)
 				for(VariableDefinition var : funcDef.getVariable()){
 				
@@ -242,33 +238,13 @@ public final class Checker implements Visitor {
 			
 			funcDefAST = new FunctionDefinition(funcDef.getIdentifier(), null, variables, commands);
 			funcDefAST.setHasReturn();
+
+			this.identificationTable.closeScope();
 			return funcDefAST;
 		}else{
-			throw new SemanticException("visitFunctionDefinition => Function already declared.");
+			throw new SemanticException("visitFunctionDefinition => Function/Procedure \'" + funcDef.getIdentifier().getValue() + "\' already declared.");
 		}
 
-		
-		/*Object temp = this.identificationTable.retrieve(funcDef.getIdentifier().getValue());
-		if(temp == null){
-			
-			this.identificationTable.enter(funcDef.getIdentifier().getValue(), funcDef);
-			this.identificationTable.openScope();
-			for(VariableDefinition var : funcDef.getVariable()){
-				var.visit(this, arg);
-			}
-		}else{
-			throw new SemanticException("Function already declared.");
-		}
-			/*if(!this.identificationTable.containsKey(funcDef.getIdentifier().toString())){
-				this.identificationTable.enter(funcDef.getIdentifier().toString(), funcDef);
-				this.identificationTable.openScope();
-			}
-			else{
-				
-			}
-		this.identificationTable.closeScope();
-		return null;
-		 */
 	}
 
 	public Object visitProcedureDefinition(ProcedureDefinition procDef, Object arg) throws SemanticException {
@@ -276,15 +252,22 @@ public final class Checker implements Visitor {
 		ProcedureDefinition procDefAST;
 		ArrayList<VariableDefinition> variables = new ArrayList<VariableDefinition>();
 		ArrayList<Command> commands = new ArrayList<Command>();
+		ParametersPrototype params;
 		Vector<Object> refer = new Vector<Object>();
 		refer.add(procDef);
 		
 		Object temp = this.identificationTable.retrieve(procDef.getIdentifier().getValue());
 		if(temp == null){
 			this.identificationTable.enter(procDef.getIdentifier().getValue(), procDef);
+			
+			params = procDef.getParams();
+			Object paramsTemp;
+			if(params != null)
+				paramsTemp = params.visit(this, procDef);
+			
+			this.identificationTable.openScope();
 			if(procDef.getVariableDefinition() != null)
 				for(VariableDefinition var : procDef.getVariableDefinition()){
-				
 					variables.add((VariableDefinition) var.visit(this, arg));
 				}
 			if(procDef.getCommands() != null){
@@ -318,8 +301,8 @@ public final class Checker implements Visitor {
 				
 				
 			}
-			
-			procDefAST = new ProcedureDefinition(procDef.getIdentifier(), variables, commands, null);
+			this.identificationTable.closeScope();
+			procDefAST = new ProcedureDefinition(procDef.getIdentifier(), variables, commands, params);
 			return procDefAST;
 
 		}
@@ -333,10 +316,38 @@ public final class Checker implements Visitor {
 		
 	}
 
-	public Object visitParametersPrototype(ParametersPrototype params,
-			Object arg) throws SemanticException {
-		// TODO Auto-generated method stub
-		return null;
+	public Object visitParametersPrototype(ParametersPrototype params,	Object arg) throws SemanticException {
+
+		
+		String id;
+		
+		if(arg instanceof ProcedureDefinition){
+			id = ((ProcedureDefinition)arg).getIdentifier().getValue(); 
+		}else{
+			id = ((FunctionDefinition)arg).getIdentifier().getValue();
+		}
+		
+		if(id.equals("main")){
+			if(params == null){
+				return null;
+			}else{
+				throw new SemanticException("visitParametersPrototype => \'main\' function/procedure MUST have none parameters");
+			}
+		}else{
+			ArrayList<Tipo> tipoTemp = params.getTipo();
+			ArrayList<Identifier> idTemp = params.getIdentifier();
+			
+			Iterator tipoTempIt = tipoTemp.iterator();
+			ListIterator idTempIt = idTemp.listIterator();
+			
+			while(tipoTempIt.hasNext() && idTempIt.hasNext()){
+				Object idCurrent = idTempIt.next();
+				((Identifier)idCurrent).tipo = ((Tipo)(tipoTempIt.next())).value;
+				idTempIt.set(idCurrent);
+			}		
+			
+			return new ParametersPrototype(tipoTemp, idTemp, null);
+		}
 	}
 	
 	@Override
@@ -382,7 +393,7 @@ public final class Checker implements Visitor {
 						}
 					}
 					else{
-						throw new SemanticException("AssignmentCommand => Variable not Declared");
+						throw new SemanticException("AssignmentCommand => Unknown data type");
 					}
 					
 					asgn = new AssignmentCommand(id, (Expression) exp);
@@ -390,16 +401,44 @@ public final class Checker implements Visitor {
 					
 					
 				}
+			}else if(assign.getCallCommand() != null){
+				CallCommand cmd = assign.getCallCommand();
+				if(cmd != null){
+					tmp = cmd.visit(this, arg);
+					String idfunc = (String)((CallCommand)cmd).getIdentifier().getValue();
+					Object callcmdtmp = this.identificationTable.retrieve(idfunc);
+					if(callcmdtmp != null){
+						if(callcmdtmp instanceof FunctionDefinition){
+							String tipo = ((FunctionDefinition)(callcmdtmp)).getTipo();
+							String tipo2="";
+							if(ast instanceof BoolVariableDefinition){
+								ast = (BoolVariableDefinition)ast;
+								tipo2 = ((BoolVariableDefinition) ast).getTipo();
+							}
+							else if(ast instanceof IntVariableDefinition){
+								ast = (IntVariableDefinition)ast;
+								tipo2 = ((IntVariableDefinition) ast).getTipo();
+							}
+							
+							if(tipo.equals(tipo2)){
+								return assign;
+							}
+							else{
+								throw new SemanticException("visitAssignmentCommand => Trying to attribute different data types");
+							}
+						}
+					}
+				}
+			}
+			else{
+				throw new SemanticException("");
+				
 			}
 			
-			CallCommand cmd = assign.getCallCommand();
-			if(cmd != null){
-				tmp = cmd.visit(this, arg);
-			}
 		return null;
 		}
 		else{
-			throw new SemanticException("AssignmentCommand => Variable not Declared");
+			throw new SemanticException("AssignmentCommand => Variable \'" + assign.getIdentifier().getValue() + "\' not Declared");
 		}
 	}
 
@@ -515,8 +554,7 @@ public final class Checker implements Visitor {
 		}
 	}
 
-	public Object visitParametersCallCommand(ParametersCallCommand params,
-			Object arg) throws SemanticException {
+	public Object visitParametersCallCommand(ParametersCallCommand params,	Object arg) throws SemanticException {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -617,13 +655,13 @@ public final class Checker implements Visitor {
 				
 			}else if(direita.getTipo().equals(esquerdo.getTipo()) && esquerdo.getTipo().equals("BOOL") &&
 					direita.getTipo().equals("BOOL")){
-				if(operador.value == "==" || operador.value == "!="){
+				if(operador.value.equals("==") || operador.value.equals("!=")){
 					expressionAST = new Expression(esquerdo, operador, direita);
 					expressionAST.tipo = esquerdo.getTipo();
 					return expressionAST;
 				}
 				else{
-					throw new SemanticException("visitExpression => Mismatch types");
+					throw new SemanticException("visitExpression => Invalid Relational Operator");
 				}
 				
 			}
@@ -645,6 +683,7 @@ public final class Checker implements Visitor {
 		ExpressionMultiplication esquerdo = null;
 		ArrayList<ExpressionMultiplication> others = new ArrayList<ExpressionMultiplication>();
 		ArrayList<Operator> operadores = expAri.getOperadores();
+		int operadorIndex = 0;
 		Object temp = expAri.getExpressionMultiplicationLeft();
 		
 		Object type1 = null;
@@ -661,10 +700,12 @@ public final class Checker implements Visitor {
 		
 		Object right = expAri.getExpressionMultiplicationOthers();
 		
-		if(right != null){
+		if(right != null && operadores != null){
 			for(ExpressionMultiplication exp : expAri.getExpressionMultiplicationOthers()){
 				type2 = exp.visit(this, arg);
-				if(esquerdo.equals(type2)){
+							
+				
+				if(esquerdo.equals(type2) && esquerdo.tipo.equals("INT")){
 					
 					others.add(((ExpressionMultiplication)type2));
 				}else{
@@ -687,6 +728,7 @@ public final class Checker implements Visitor {
 		Factor esquerdo = null;
 		Object temp = expMul.getFactorLeft();
 		Object f1;
+		int operadorIndex = 0;
 		if(temp != null){
 			 f1 = ((Factor)temp).visit(this, arg);
 			 if(f1 instanceof Number){
@@ -711,17 +753,23 @@ public final class Checker implements Visitor {
 			
 		
 		Object right = expMul.getFactorOthers();
+		ArrayList<Operator> operadores = expMul.getOperadores();
 		
 		if(right != null){
 			for(Factor f : expMul.getFactorOthers()){
-				if(f1.equals(f.visit(this, arg))){
+				if(esquerdo.equals(f.visit(this, arg))){
 					if(f instanceof Number){
 						others.add(((Number)f));
 					}else if(f instanceof Bool){
-						others.add(((Bool)f));
+						if(esquerdo.tipo.equals("BOOL") && 
+								(operadores != null && (!operadores.get(operadorIndex).value.equals("*") || !operadores.get(operadorIndex).value.equals("*")))){
+							others.add(((Bool)f));
+						}else{
+							throw new SemanticException("visitExpressionMultiplication => You cannot operate boolean values");
+						}
 					}
-					else if(f1 instanceof Expression){
-						 esquerdo = ((Expression) f1);
+					else if(f instanceof Expression){
+						others.add(((Expression)f));
 					 }
 					
 					/*else if(f instanceof Bool){
@@ -738,18 +786,7 @@ public final class Checker implements Visitor {
 				
 			}
 		}
-		
-		/*
-		Factor f = expMul.getFactorLeft();
-		Object temp = f.visit(this, null);
-		
-		if(temp instanceof Number){
-			return temp;
-		}
-		else if(temp instanceof Bool){
-			return temp;
-		}
-		*/
+
 		expAST = new ExpressionMultiplication(esquerdo, expMul.getOperadores(), others);
 		expAST.tipo = esquerdo.tipo;
 		return expAST;
@@ -774,20 +811,6 @@ public final class Checker implements Visitor {
 		else if(factor instanceof AssignmentCallCommand){
 			return ((AssignmentCallCommand)factor).visit(this, arg);
 		}
-		
-		/*
-		if(factor.getNumber() != null){
-			Number num = factor.getNumber();
-			num.visit(this, arg);
-			return num;
-		}
-		else if(factor.getBool() != null){
-			Bool bool = factor.getBool();
-			bool.visit(this, arg);
-			return bool;
-		}
-		*/
-		
 		
 		return null;
 	}

@@ -89,6 +89,10 @@ public class ProcedureDefinition extends CallableDefinition{
 		return this.command;
 	}
 	
+	public ParametersPrototype getParams(){
+		return this.params;
+	}
+	
 	@Override
 	public Identifier getIdentifier(){
 		return this.identifier;
