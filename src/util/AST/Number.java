@@ -39,7 +39,15 @@ public class Number extends Factor{
 	public boolean equals(Object obj) {
 		if(obj instanceof Number){
 			return this.tipo.equals(((Number)obj).tipo);
-		}else{
+		}
+		else if(obj instanceof Identifier){
+			return this.tipo.equals(((Identifier)obj).tipo);
+		}
+		else if(obj instanceof Expression){
+			return this.tipo.equals(((Expression)obj).tipo);
+		}
+		
+		else{
 			return false;
 		}
 	}

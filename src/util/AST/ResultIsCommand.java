@@ -13,6 +13,10 @@ public class ResultIsCommand extends Command{
 		this.reservedWord = new ReservedWord(TokenKind.RESULTIS.toString());
 		this.expression = expression;
 	}
+
+	public Expression getExpression(){
+		return this.expression;
+	}
 	
 	@Override
 	public String toString(int level) {

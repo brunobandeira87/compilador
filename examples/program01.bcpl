@@ -1,5 +1,4 @@
-LET myFunction() = VALOF {
-	WRITEF(10)
-	
-	RESULTIS 1
+LET INT main() = VALOF {
+	x = 5+3-2+1;
+	RESULTIS 5;
 }

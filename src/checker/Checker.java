@@ -3,6 +3,7 @@ package checker;
 import java.util.ArrayList;
 import java.util.Vector;
 
+import scanner.TokenKind;
 import util.AST.*;
 import util.AST.Number;
 import util.symbolsTable.IdentificationTable;
@@ -15,8 +16,13 @@ public final class Checker implements Visitor {
 	
 
 	public void check(AST ast) throws SemanticException{
+		
 		this.identificationTable = new IdentificationTable();
-		ast.visit(this,null);
+		try{
+			ast.visit(this,null);
+		}catch(SemanticException e){
+			e.printStackTrace();
+		}
 	}
 	
 	public Checker(){
@@ -51,13 +57,14 @@ public final class Checker implements Visitor {
 			for(CallableDefinition call : program.getFunctionProcedureDefinitionList().getCallableDefinition()){
 				this.reference.add(call);
 				//this.identificationTable.enter(call.getIdentifier().value, call);
-				callable.add((CallableDefinition)call.visit(this, call));
+				this.reference.add(call);
+				callable.add((CallableDefinition)call.visit(this, null));
 				this.reference.remove(call);
 				
 			}
 		}
 		else{
-			throw new SemanticException("You must declare at least one function/procedure");
+			throw new SemanticException("visitProgram => You MUST declare at least one function/procedure as a \'main\'");
 		}
 		
 		functionProcedureDefinitionList = new FunctionProcedureDefinitionList(null, callable);
@@ -84,26 +91,30 @@ public final class Checker implements Visitor {
 			
 		}
 		else{
-			throw new SemanticException("It is not possible to declare global variable outside the outtermost block");
+			throw new SemanticException("visitVariableGlobalDefinition => It is not possible to declare global variable outside the outtermost block");
 		}
 		
 		return null;
 	}
 
 	public Object visitFunctionProcedureDefinitionList(	FunctionProcedureDefinitionList funcProcDef, Object arg) throws SemanticException {
-		
-		
-		for(CallableDefinition callTemp : funcProcDef.getCallableDefinition()){
-			//Object temp = this.identificationTable.retrieve(callTemp.getIdentifier().value);
-			//if(temp == null){
-				//this.identificationTable.enter(callTemp.getIdentifier().value, callTemp);
-				this.reference.add(callTemp);
-				callTemp.visit(this, arg);
-				this.reference.remove(callTemp);
-			//}
+		FunctionProcedureDefinitionList funcPAST;
+		ArrayList<CallableDefinition>  callDef = new ArrayList<CallableDefinition>();
+		if(funcProcDef.getCallableDefinition() != null){
+			for(CallableDefinition callTemp : funcProcDef.getCallableDefinition()){
+					
+					this.reference.add(callTemp);
+					this.identificationTable.openScope();
+					callDef.add((CallableDefinition) callTemp.visit(this, arg));
+					this.reference.remove(callTemp);
+					this.identificationTable.closeScope();
+				//}
+			}
 		}
 		
-		return funcProcDef;
+		funcPAST = new FunctionProcedureDefinitionList(funcProcDef.getReservedWords(), callDef);
+		
+		return funcPAST;
 	}
 
 	public Object visitIntVariableDefinition(IntVariableDefinition intVarDef, Object arg) throws SemanticException {
@@ -121,11 +132,11 @@ public final class Checker implements Visitor {
 				return intAST;
 			}
 			else{
-				throw new SemanticException("Different Kind of Data type");
+				throw new SemanticException("visitIntVariableDefinition => Type mismatch");
 			}
 		}
 		else{
-			throw new SemanticException("Variable already declared.");
+			throw new SemanticException("visitIntVariableDefinition => Variable \'"  + intVarDef.getIdentifier().getValue() +  "\' already declared.");
 		}
 	
 		//return null;
@@ -162,17 +173,82 @@ public final class Checker implements Visitor {
 				return boolAST;
 			}
 			else{
-				throw new SemanticException("Different Kind of Data type");
+				throw new SemanticException("visitBoolVariableDefinition => Type Mismatch");
 			}
 		}
 		else{
-			throw new SemanticException("Variable already declared.");
+			throw new SemanticException("visitBoolVariableDefinition => Variable already declared.");
 		}
 		
 	}
 
 	public Object visitFunctionDefintion(FunctionDefinition funcDef, Object arg) throws SemanticException {
+		
+		FunctionDefinition funcDefAST;
+		ArrayList<VariableDefinition> variables = new ArrayList<VariableDefinition>();
+		ArrayList<Command> commands = new ArrayList<Command>();
+		Vector<Object> refer = new Vector<Object>();
+		refer.add(funcDef);
+		
+		
 		Object temp = this.identificationTable.retrieve(funcDef.getIdentifier().getValue());
+		if(temp == null){
+			//System.out.println("alo " + ((Factor) temp).getTipo());
+			
+			this.identificationTable.enter(funcDef.getIdentifier().getValue(), funcDef);
+			if(funcDef.getVariable() != null)
+				for(VariableDefinition var : funcDef.getVariable()){
+				
+					variables.add((VariableDefinition) var.visit(this, funcDef));
+				}
+			if(funcDef.getCommand() != null){
+				for(Command com : funcDef.getCommand()){
+					
+					if(com instanceof AssignmentCommand){
+						commands.add((Command) ((AssignmentCommand)com).visit(this, refer));
+					}
+					else if(com instanceof BreakCommand){
+						commands.add((Command) ((BreakCommand)com).visit(this, refer));
+					}
+					else if(com instanceof ContinueCommand){
+						commands.add((Command) ((ContinueCommand)com).visit(this, refer));
+					}
+					else if(com instanceof CallCommand){
+						commands.add((Command) ((CallCommand)com).visit(this, refer));
+					}
+					else if(com instanceof IfCommand){
+						commands.add((Command)((IfCommand)com).visit(this, refer));
+					}
+					else if(com instanceof PrintCommand){
+						commands.add((Command)((PrintCommand)com).visit(this, refer));
+					}
+					else if(com instanceof WhileCommand){
+						commands.add((Command) ((WhileCommand)com).visit(this, refer));
+					}
+					else if(com instanceof ResultIsCommand){
+						commands.add((Command) ((ResultIsCommand)com).visit(this, refer));
+						//hasReturn = true;
+					}
+				}
+				
+				
+			}
+			
+			boolean hasReturn = ((FunctionDefinition)refer.firstElement()).getHasReturn();
+			
+			if(hasReturn == false){
+				throw new SemanticException("visitFunctionDefinition => Function MUST have at least one RESULTIS Statement.");
+			}
+			
+			funcDefAST = new FunctionDefinition(funcDef.getIdentifier(), null, variables, commands);
+			funcDefAST.setHasReturn();
+			return funcDefAST;
+		}else{
+			throw new SemanticException("visitFunctionDefinition => Function already declared.");
+		}
+
+		
+		/*Object temp = this.identificationTable.retrieve(funcDef.getIdentifier().getValue());
 		if(temp == null){
 			
 			this.identificationTable.enter(funcDef.getIdentifier().getValue(), funcDef);
@@ -190,9 +266,9 @@ public final class Checker implements Visitor {
 			else{
 				
 			}
-			*/
 		this.identificationTable.closeScope();
 		return null;
+		 */
 	}
 
 	public Object visitProcedureDefinition(ProcedureDefinition procDef, Object arg) throws SemanticException {
@@ -200,7 +276,8 @@ public final class Checker implements Visitor {
 		ProcedureDefinition procDefAST;
 		ArrayList<VariableDefinition> variables = new ArrayList<VariableDefinition>();
 		ArrayList<Command> commands = new ArrayList<Command>();
-		
+		Vector<Object> refer = new Vector<Object>();
+		refer.add(procDef);
 		
 		Object temp = this.identificationTable.retrieve(procDef.getIdentifier().getValue());
 		if(temp == null){
@@ -217,22 +294,25 @@ public final class Checker implements Visitor {
 						commands.add((Command) ((AssignmentCommand)com).visit(this, arg));
 					}
 					else if(com instanceof BreakCommand){
-						((BreakCommand)com).visit(this, arg);
+						commands.add((Command) ((BreakCommand)com).visit(this, arg));
 					}
 					else if(com instanceof ContinueCommand){
-						((ContinueCommand)com).visit(this, arg);
+						commands.add((Command) ((ContinueCommand)com).visit(this, arg));
 					}
 					else if(com instanceof CallCommand){
-						((CallCommand)com).visit(this, arg);
+						commands.add((Command) ((CallCommand)com).visit(this, arg));
 					}
 					else if(com instanceof IfCommand){
-						((IfCommand)com).visit(this, arg);
+						commands.add((Command)((IfCommand)com).visit(this, refer));
 					}
 					else if(com instanceof PrintCommand){
-						((PrintCommand)com).visit(this, arg);
+						commands.add((Command)((PrintCommand)com).visit(this, arg));
 					}
 					else if(com instanceof WhileCommand){
-						commands.add((Command) ((WhileCommand)com).visit(this, arg));
+						commands.add((Command) ((WhileCommand)com).visit(this, refer));
+					}
+					else if(com instanceof ResultIsCommand){
+						commands.add((Command) ((ResultIsCommand)com).visit(this, refer));
 					}
 				}
 				
@@ -250,68 +330,7 @@ public final class Checker implements Visitor {
 		
 		
 		return procDef;
-		/*this.identificationTable.openScope();
 		
-		Object varDef = procDef.getVariableDefinition();
-		
-		if(varDef != null){
-			for(VariableDefinition var : procDef.getVariableDefinition()){
-				Object teste = this.identificationTable.retrieve(var.getIdentifier().value);
-				if(teste == null){
-					this.identificationTable.enter(var.getIdentifier().value, var);
-					var.visit(this, arg);
-					//this.identificationTable.enter(var.getIdentifier().value, var);
-					
-				}
-				else{
-					throw new SemanticException("There is an Variable/Function already declared named as :" + var.getIdentifier().value);
-				}
-				
-			}
-		}
-		
-		Object commands = procDef.getCommands();
-		
-		if(commands != null){
-			for(Command c : procDef.getCommands()){
-				if(c instanceof AssignmentCommand){
-					Object teste = this.identificationTable.retrieve(((AssignmentCommand) c).getIdentifier().value);
-					if(teste != null){
-						this.reference.add(teste);
-						Object asgn = c.visit(this, teste);
-						
-						this.reference.remove(teste);
-					}
-				}
-				else if(c instanceof IfCommand){
-					c.visit(this, arg);
-				}
-				else if(c instanceof ResultIsCommand){
-					throw new SemanticException("You cannot return anything inside a Procedure Block -- Type: VOID");
-				}
-				else if(c instanceof BreakCommand){
-					c.visit(this, arg);
-				}
-				else if(c instanceof ContinueCommand){
-					
-				}
-				else if(c instanceof WhileCommand){
-					
-				}
-				else if(c instanceof CallCommand){
-					
-				}
-				else if(c instanceof PrintCommand){
-					
-				}
-			}
-		}
-		
-		
-		this.identificationTable.closeScope();
-		
-		return procDef;
-		*/
 	}
 
 	public Object visitParametersPrototype(ParametersPrototype params,
@@ -338,47 +357,63 @@ public final class Checker implements Visitor {
 	public Object visitAssignmentCommand(AssignmentCommand assign, Object arg) throws SemanticException {
 		AssignmentCommand asgn = null;
 		Identifier id = null;
-		Expression expr = null;
+		CallCommand command;
 		Object ast = this.identificationTable.retrieve(assign.getIdentifier().getValue());
 		if(ast != null){
-		Object tmp = assign.getExpression();
-		
-		if(tmp != null){
-			if(tmp instanceof Expression){
-				Object exp = ((Expression) tmp).visit(this, arg);
-				if(((IntVariableDefinition)ast).getTipo().equals(((Expression)exp).getTipo())){
-					id = new Identifier(((IntVariableDefinition)ast).getIdentifier().getValue());
+			Object tmp = assign.getExpression();
+			
+			if(tmp != null){
+				if(tmp instanceof Expression){
+					Object exp = ((Expression) tmp).visit(this, arg);
+					if(ast instanceof IntVariableDefinition){
+						if(((IntVariableDefinition)ast).getTipo().equals(((Expression)exp).getTipo())){
+							id = new Identifier(((IntVariableDefinition)ast).getIdentifier().getValue());
+						}
+						else{
+							throw new SemanticException("AssignmentCommand => Trying to assign different types of data");
+						}
+					}
+					else if(ast instanceof BoolVariableDefinition){
+						if(((BoolVariableDefinition)ast).getTipo().equals(((Expression)exp).getTipo())){
+							id = new Identifier(((BoolVariableDefinition)ast).getIdentifier().getValue());
+						}
+						else{
+							throw new SemanticException("AssignmentCommand => Trying to assign different types of data");
+						}
+					}
+					else{
+						throw new SemanticException("AssignmentCommand => Variable not Declared");
+					}
+					
+					asgn = new AssignmentCommand(id, (Expression) exp);
+					return asgn;
+					
+					
 				}
-				else if(((BoolVariableDefinition)ast).getTipo().equals(((Expression)exp).getTipo())){
-					id = new Identifier(((BoolVariableDefinition)ast).getIdentifier().getValue());
-				}
-				else{
-					throw new SemanticException("AssignmentCommand: Variable not Declared");
-				}
-				
-				asgn = new AssignmentCommand(id, (Expression) exp);
-				return asgn;
-				
-				
 			}
-		}
+			
+			CallCommand cmd = assign.getCallCommand();
+			if(cmd != null){
+				tmp = cmd.visit(this, arg);
+			}
 		return null;
 		}
 		else{
-			throw new SemanticException("AssignmentCommand: Variable not Declared");
+			throw new SemanticException("AssignmentCommand => Variable not Declared");
 		}
 	}
 
 	public Object visitCallCommand(CallCommand callCmd, Object arg)	throws SemanticException {
-		AST cmd;
 		
-		cmd = this.identificationTable.retrieve(callCmd.getIdentifier().getValue());
+		
+		
+		AST cmd = this.identificationTable.retrieve(callCmd.getIdentifier().getValue());
 		
 		if(cmd != null){
 			return cmd;
 		}
 		else{
-			throw new SemanticException("Function/Procedure not declared.");
+			throw new SemanticException("visitCallCommand => Function/Procedure not declared.");
 		}
 			
 			
@@ -391,7 +426,7 @@ public final class Checker implements Visitor {
 			return continueCmd;
 		}
 		else{
-			throw new SemanticException("CONTINUE needs to be used within loop command");
+			throw new SemanticException("visitContinueCommand => CONTINUE MUST be used within loop command");
 		}
 	}
 
@@ -401,7 +436,7 @@ public final class Checker implements Visitor {
 			
 			return breakCmd;
 		}else{
-			throw new SemanticException("BREAK needs to be used within loop command");
+			throw new SemanticException("visitBreakCommand => 'BREAK' MUST be used within loop command");
 		}
 		
 		
@@ -414,54 +449,70 @@ public final class Checker implements Visitor {
 
 	public Object visitIfCommand(IfCommand ifCmd, Object arg) 	throws SemanticException {
 		this.identificationTable.openScope();
-		Expression exp = ifCmd.getExpression();
+		Object exp = ifCmd.getExpression();
+		Expression e;
+		ArrayList<Command> cmd =  new ArrayList<Command>();
+		IfCommand ic; 
+		if(arg instanceof Vector){
+			((Vector<IfCommand>)arg).add(ifCmd);
+		}
 		if(exp != null){
-			exp.visit(this, arg);
+			e = (Expression) ((Expression)exp).visit(this, arg);
+		}
+		else{
+			throw new SemanticException("visitIfCommand => You MUST write an expression");
 		}
 		
 		Object commands = ifCmd.getCommand();
 		
 		if(commands != null){
+			this.identificationTable.openScope();
 			for(Command c : ifCmd.getCommand()){
 				if(c instanceof IfCommand){
-					return ((IfCommand)c).visit(this, arg);
+					cmd.add( (Command) ((IfCommand)c).visit(this, arg));
 				}
 				else if(c instanceof AssignmentCommand){
-					return ((AssignmentCommand)c).visit(this, arg);
+					cmd.add( (Command) ((AssignmentCommand)c).visit(this, arg));
 				}
 				else if(c instanceof WhileCommand){
-					return ((WhileCommand)c).visit(this,arg);
+					cmd.add( (Command) ((WhileCommand)c).visit(this,arg));
 				}
 				else if(c instanceof CallCommand){
-					return ((CallCommand)c).visit(this,arg);
+					cmd.add( (Command) ((CallCommand)c).visit(this,arg));
 				}
 				else if(c instanceof ContinueCommand){
-					return ((ContinueCommand)c).visit(this, arg);
+					cmd.add( (Command) ((ContinueCommand)c).visit(this, arg));
 				}
 				else if(c instanceof BreakCommand){
-					return ((BreakCommand)c).visit(this, arg);	
+					cmd.add( (Command) ((BreakCommand)c).visit(this, arg));
+					break;
 				}
 				else if(c instanceof ResultIsCommand){
-					return ((ResultIsCommand)c).visit(this, arg);
+					cmd.add( (Command) ((ResultIsCommand)c).visit(this, arg));
 				}
 				else if(c instanceof ElseCommand){
-					return ((ElseCommand)c).visit(this, arg);
+					cmd.add( (Command)  ((ElseCommand)c).visit(this, arg));
 				}
 				else if(c instanceof PrintCommand){
-					return ((PrintCommand)c).visit(this, arg);
+					cmd.add( (Command) ((PrintCommand)c).visit(this, arg));
 				}
 				
 			}
+			this.identificationTable.closeScope();
 		}
 		
+		ic = new IfCommand(e, cmd);
 		
-		return null;
+		return ic;
 	}
 
-	public Object visitElseCommand(ElseCommand elseCmd, Object arg)
-			throws SemanticException {
-		// TODO Auto-generated method stub
-		return null;
+	public Object visitElseCommand(ElseCommand elseCmd, Object arg) 	throws SemanticException {
+		if(arg instanceof IfCommand){
+			return null;
+		}
+		else{
+			throw new SemanticException("visitElseCommand => You MUST declare an IF Statement before using an ELSE Statement");
+		}
 	}
 
 	public Object visitParametersCallCommand(ParametersCallCommand params,
@@ -471,12 +522,32 @@ public final class Checker implements Visitor {
 	}
 
 	public Object visitResultIsCommand(ResultIsCommand resultCmd, Object arg) throws SemanticException {
-		if(arg instanceof ProcedureDefinition){
-			throw new SemanticException("You cannot return anything inside a Procedure (VOID)");
-		}else if(arg instanceof FunctionDefinition){
-			
+		Object funcProc = null;
+		
+		if(arg instanceof Vector){
+			funcProc = ((Vector<Object>)arg).firstElement();
 		}
-		return null;
+				
+		
+		if(funcProc instanceof ProcedureDefinition){
+			throw new SemanticException("visitResultIsCommand => You cannot return anything inside a Procedure (VOID)");
+		}else if(funcProc instanceof FunctionDefinition){
+			
+			FunctionDefinition def = (FunctionDefinition) this.identificationTable.retrieve(((FunctionDefinition) funcProc).getIdentifier().getValue());
+			Object ex = resultCmd.getExpression().visit(this, arg);
+			if(((Expression)ex).getTipo().equals(def.getTipo())){
+				((FunctionDefinition) funcProc).setHasReturn();
+				((Vector<Object>)arg).insertElementAt(funcProc, 0);
+				ResultIsCommand rc = new ResultIsCommand((Expression)ex);
+				return rc;
+			}
+			else{
+				throw new SemanticException("visitResultIsCommand => You cannot return a \'" + ((Expression)ex).getTipo() +"\' while your function is \'" + def.getTipo() + "\'.");
+			}
+		}else{
+			throw new SemanticException("visitResultIsCommand => Unknown Type");
+		}
+		
 	}
 
 	public Object visitWhileCommand(WhileCommand whileCmd, Object arg)	throws SemanticException {
@@ -488,7 +559,7 @@ public final class Checker implements Visitor {
 			exp = ((Expression)temp);
 		}
 		else{
-			throw new SemanticException("visitWhileCommand: Expression failed");
+			throw new SemanticException("visitWhileCommand => Expression failed");
 		}
 		
 		Object cmd = whileCmd.getCommand();
@@ -496,8 +567,11 @@ public final class Checker implements Visitor {
 			this.identificationTable.openScope();
 			for(Command c : whileCmd.getCommand()){
 				if(c instanceof BreakCommand){
-					Object tmp = ((BreakCommand)c).visit(this, whileCmd);
+					command.add((Command) ((BreakCommand)c).visit(this, whileCmd));
 					break;
+				}
+				else if(c instanceof ResultIsCommand){
+					command.add((Command) ((ResultIsCommand)c).visit(this, arg));
 				}
 			}
 			this.identificationTable.closeScope();
@@ -524,7 +598,42 @@ public final class Checker implements Visitor {
 			Object e2 = ((ExpressionArithmetic)right).visit(this, arg);
 			
 			direita = ((ExpressionArithmetic)e2);
+			if(!direita.getTipo().equals(esquerdo.getTipo())){
+				throw new SemanticException("visitExpression => Trying to compare different types of data");
+			}
 		}
+		
+		if(operador != null ){
+			if(direita.getTipo().equals(esquerdo.getTipo()) && esquerdo.getTipo().equals("INT") &&
+					direita.getTipo().equals("INT")){
+				if(operador.value.equals(">") || operador.value.equals("<") || 
+						operador.value.equals(">=") || operador.value.equals("<=") ||
+						operador.value.equals("==") || operador.value.equals("!=")){
+					expressionAST = new Expression(esquerdo, operador, direita);
+					expressionAST.tipo = "BOOL";
+					return expressionAST;
+				}
+				
+				
+			}else if(direita.getTipo().equals(esquerdo.getTipo()) && esquerdo.getTipo().equals("BOOL") &&
+					direita.getTipo().equals("BOOL")){
+				if(operador.value == "==" || operador.value == "!="){
+					expressionAST = new Expression(esquerdo, operador, direita);
+					expressionAST.tipo = esquerdo.getTipo();
+					return expressionAST;
+				}
+				else{
+					throw new SemanticException("visitExpression => Mismatch types");
+				}
+				
+			}
+			else{
+				throw new SemanticException("visitExpression => Mismatch types");
+			}
+			
+		}
+			
+		
 		
 		expressionAST = new Expression(esquerdo, operador, direita);
 		expressionAST.tipo = esquerdo.getTipo();
@@ -559,7 +668,7 @@ public final class Checker implements Visitor {
 					
 					others.add(((ExpressionMultiplication)type2));
 				}else{
-					throw new SemanticException("Different types");
+					throw new SemanticException("visitExpressionArithmetic => Mismacth type");
 				}
 			}
 		}
@@ -592,6 +701,9 @@ public final class Checker implements Visitor {
 			 else if(f1 instanceof Identifier){
 				 esquerdo = ((Identifier)f1);
 			 }
+			 else if(f1 instanceof Expression){
+				 esquerdo = ((Expression) f1);
+			 }
 		}
 		else{
 			return null;
@@ -607,7 +719,12 @@ public final class Checker implements Visitor {
 						others.add(((Number)f));
 					}else if(f instanceof Bool){
 						others.add(((Bool)f));
-					}/*else if(f instanceof Bool){
+					}
+					else if(f1 instanceof Expression){
+						 esquerdo = ((Expression) f1);
+					 }
+					
+					/*else if(f instanceof Bool){
 						
 					}*/
 					
@@ -615,7 +732,8 @@ public final class Checker implements Visitor {
 					
 				}
 				else{
-					throw new SemanticException("You cannot operate different types of data");
+					
+					throw new SemanticException("visitExpressionMultiplication => You cannot operate different types of data");
 				}
 				
 			}
@@ -684,24 +802,24 @@ public final class Checker implements Visitor {
 				identifier.tipo = ((BoolVariableDefinition)ast).getTipo();
 			}
 			else{
-				throw new SemanticException("visitIdentifier: Variable has different type");
+				throw new SemanticException("visitIdentifier => Variable has different type");
 			}
 			
 			return identifier;
 		}else{
-			throw new SemanticException("visitIdentifier: Variable Not declared");
+			throw new SemanticException("visitIdentifier => Variable \'" + identifier.getValue() + "\' Not declared");
 		}
 	}
 
 	public Object visitNumber(Number number, Object obj) throws SemanticException {
 
-		System.out.println(number.getValue() + "\n");
+		//System.out.println(number.getValue() + "\n");
 		number.tipo = "INT";
 		return number;
 	}
 
 	public Object visitBoolean(Bool bool, Object obj) throws SemanticException {
-		System.out.println(bool.getValue());
+		//System.out.println(bool.getValue());
 		bool.tipo = "BOOL";
 		return bool;
 	}

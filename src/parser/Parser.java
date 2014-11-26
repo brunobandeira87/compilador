@@ -13,7 +13,7 @@ import util.AST.Number;
 
 public class Parser {
 
-	private BCPLScanner scanner = null;
+	private Scanner scanner = null;
 	private Token currentToken = null;
 	
 	
@@ -21,7 +21,7 @@ public class Parser {
 	 * Parser constructor
 	 */
 	public Parser() {
-		this.scanner = new BCPLScanner();
+		this.scanner = new Scanner();
 		
 
 		try {
@@ -122,7 +122,7 @@ public class Parser {
 			variableDefinitionAST = parseBoolVariableDefinition();
 		}
 		else{
-			System.out.println("Treta");
+			throw new SyntacticException("parseVariableDefinition => Unknown Data Type", this.currentToken);
 		}
 		return variableDefinitionAST;
 	}
@@ -221,7 +221,7 @@ public class Parser {
 	//functionDefinition       ::=    ('INT' | 'BOOL') Identifier '(' (parametersPrototype)? ')' '=' 'VALOF' '{' varDefinition* command* '}'
 	private FunctionDefinition parseFunctionDefinition() throws SyntacticException{
 		FunctionDefinition funcAST;
-		Tipo tipo;
+		String tipo;
 		Identifier identifier;
 		ParametersPrototype parametersPrototype = null;
 		ArrayList<VariableDefinition> variableDefinition = new ArrayList<VariableDefinition>();
@@ -231,8 +231,10 @@ public class Parser {
 		
 		switch(this.currentToken.getKind()){
 			case INT:
+				
 			case BOOL:
-				tipo = new Tipo(this.currentToken.getKind().toString(), this.currentToken.getSpelling());
+				
+				tipo = this.currentToken.getSpelling();
 				acceptIt();
 				identifier = new Identifier(this.currentToken.getSpelling());
 				accept(TokenKind.IDENTIFIER);
@@ -255,7 +257,8 @@ public class Parser {
 				}
 				
 				accept(TokenKind.RCURL);
-				funcAST = new FunctionDefinition(identifier, parametersPrototype, variableDefinition , command);
+				funcAST = new FunctionDefinition(tipo, identifier, parametersPrototype , command , variableDefinition);
+				funcAST.tipo = tipo;
 				
 			break;
 			
@@ -336,6 +339,7 @@ public class Parser {
 				}
 			}
 		}
+		procedureDefinitionAST.tipo = "VOID";
 		
 		return procedureDefinitionAST;
 
@@ -366,17 +370,17 @@ public class Parser {
 						accept(TokenKind.IDENTIFIER);
 
 					}else{
-						SyntacticException e = new SyntacticException("ERROR", currentToken);
-						System.out.println(e.toString());
-						throw e;
+						throw new SyntacticException("ERROR", currentToken);
+						
+						
 					}
 				}
 				
 				break;
 		default:
-			SyntacticException e = new SyntacticException("ERROR", currentToken);
-			System.out.println(e.toString());
-			throw e;
+			throw new SyntacticException("ERROR", currentToken);
+			
+			
 			
 		}
 		
@@ -417,9 +421,9 @@ public class Parser {
 				cmd = parseResultIsCommand();				
 				break;
 			default:
-				SyntacticException e = new SyntacticException(null, currentToken);
-				System.out.println(e.toString());
-				throw e;
+				throw new SyntacticException(null, currentToken);
+				
+				
 		}
 		return cmd;
 		
@@ -478,7 +482,7 @@ public class Parser {
 		while(this.currentToken.getKind() == TokenKind.IF || this.currentToken.getKind() == TokenKind.WHILE ||
 				this.currentToken.getKind() == TokenKind.WRITEF || this.currentToken.getKind() == TokenKind.IDENTIFIER ||
 				this.currentToken.getKind() == TokenKind.CALL  || this.currentToken.getKind() == TokenKind.BREAK ||
-				this.currentToken.getKind() == TokenKind.CONTINUE) {
+				this.currentToken.getKind() == TokenKind.CONTINUE || this.currentToken.getKind() == TokenKind.RESULTIS) {
 			command.add(parseCommand());
 			hasCommand = true;
 		}
@@ -619,7 +623,7 @@ public class Parser {
 		while(this.currentToken.getKind() == TokenKind.IF || this.currentToken.getKind() == TokenKind.WHILE ||
 				this.currentToken.getKind() == TokenKind.WRITEF || this.currentToken.getKind() == TokenKind.IDENTIFIER || 
 				this.currentToken.getKind() == TokenKind.CALL || this.currentToken.getKind() == TokenKind.BREAK ||
-				this.currentToken.getKind() == TokenKind.CONTINUE){
+				this.currentToken.getKind() == TokenKind.CONTINUE || this.currentToken.getKind() == TokenKind.RESULTIS){
 			command.add(parseCommand());
 			hasCommand = true;
 		}
@@ -684,13 +688,13 @@ public class Parser {
 		left = parseExpArit();
 		
 		switch(this.currentToken.getKind()){
-			case EQUALLOGICAL:
+			
 			case LT:
 			case LTE:
 			case GT:
 			case GTE:
-			case NOTEQUALLOGICAL:
-			case OP_RELATION:
+			case NOTEQUAL:
+			case EQUAL:
 				operador = new Operator(this.currentToken.getSpelling());
 				acceptIt();
 				right = parseExpArit();

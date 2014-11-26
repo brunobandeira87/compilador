@@ -36,6 +36,11 @@ public class AssignmentCommand extends Command{
 	public Expression getExpression(){
 		return this.expression;
 	}
+	
+	public CallCommand getCallCommand(){
+		return this.callCommand;
+	}
+	
 	@Override
 	public Object visit(Visitor v, Object arg) throws SemanticException {
 		return v.visitAssignmentCommand(this, arg);

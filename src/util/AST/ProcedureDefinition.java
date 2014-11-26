@@ -9,7 +9,7 @@ import scanner.TokenKind;
 
 public class ProcedureDefinition extends CallableDefinition{
 
-	private Tipo tipo;
+	public String tipo;
 	private Identifier identifier;
 	private ArrayList<Terminal> terminal;
 	
@@ -18,7 +18,7 @@ public class ProcedureDefinition extends CallableDefinition{
 	private ParametersPrototype params;
 	
 	private void setOperator(){
-		this.tipo = new Tipo(TokenKind.VOID.toString(), TokenKind.VOID.toString());
+		this.tipo = "VOID";
 		this.terminal = new ArrayList<Terminal>();
 		this.terminal.add( new Operator("("));
 		this.terminal.add( new Operator(")"));
@@ -77,7 +77,7 @@ public class ProcedureDefinition extends CallableDefinition{
 		this.setOperator();
 	}
 
-	public Tipo getTipo(){
+	public String getTipo(){
 		return this.tipo;
 	}
 	

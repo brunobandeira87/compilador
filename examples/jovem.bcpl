@@ -1,9 +1,5 @@
-GLOBAL LET INT x = 5;
-LET VOID main()  BE {
-	x = 10-3*2;
-	
-	WHILE(x == 10){
-		BREAK;
-	}
 
+
+LET BOOL main() = VALOF{
+	RESULTIS 5 == 5;
 }

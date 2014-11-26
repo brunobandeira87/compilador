@@ -17,9 +17,11 @@ public class SemanticException extends Exception {
 	 * @param message
 	 */
 	public SemanticException(String message) {
+		//super(message);
+		this.message = message;
 
-		super(message);
-		this.toString();
+		
+		//System.out.println(this.toString());
 	}
 
 	/**
@@ -28,12 +30,19 @@ public class SemanticException extends Exception {
 	public String toString() {
 		String errorMessage =
 			"---- SEMANTIC ERROR REPORT - BEGIN ----\n" + ">> Message: " +
-				super.getMessage() + "\n" +
+				this.getMessage() + "\n" +
 				"----- SEMANTIC ERROR REPORT - END -----\n";
 
 		return errorMessage;
 	}
+	
+	@Override
+	public String getMessage() {
+		// TODO Auto-generated method stub
+		return this.message;
+	}
 
 	private static final long serialVersionUID = 3457448332803077642L;
+	private String message;
 
 }

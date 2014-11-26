@@ -40,7 +40,7 @@ public class Compiler {
 		
 		
 		Parser p = new Parser();
-
+		System.out.println("1 - Lexical Step [OK]"); 
 		// Creates the AST object
 
 		AST astRoot = null;
@@ -50,18 +50,17 @@ public class Compiler {
 			// Parses the source code
 
 			astRoot = p.parse();
-			System.out.println("\n-- AST STRUCTURE --");
+			System.out.println("2 - Syntatic Step [OK]");
+			//System.out.println("\n-- AST STRUCTURE --");
 
-			if (astRoot != null) {
-				System.out.println(astRoot.toString(0));
-			}
+			
 		
 			Checker checker = new Checker();
 			try{
 				checker.check(astRoot);
-				System.out.println("HA");
+				System.out.println("3 - Semantic Step [OK]");
 			} catch(SemanticException e){
-				System.out.println(e.getMessage().toString());
+				System.out.println(((SemanticException)e).getMessage().toString());
 			}
 			
 		}
