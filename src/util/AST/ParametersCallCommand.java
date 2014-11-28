@@ -20,6 +20,10 @@ public class ParametersCallCommand extends AST {
 		this.identifier = identifier;
 	}
 	
+	public ArrayList<Factor> getParams(){
+		return this.identifier;
+	}
+	
 	@Override
 	public String toString(int level) {
 		// TODO Auto-generated method stub

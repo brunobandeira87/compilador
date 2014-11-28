@@ -46,6 +46,11 @@ public class CallCommand extends Command{
 		return this.identifier;
 	}
 
+	public ParametersCallCommand getParams(){
+		return this.parameters;
+	}
+	
+	
 	@Override
 	public String toString(int level) {
 		// TODO Auto-generated method stub

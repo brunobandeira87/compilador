@@ -546,7 +546,8 @@ public class Parser {
 		identifier = new Identifier(this.currentToken.getSpelling());
 		accept(TokenKind.IDENTIFIER);
 		accept(TokenKind.LPAR);		
-		while(this.currentToken.getKind() == TokenKind.IDENTIFIER || this.currentToken.getKind() == TokenKind.NUMBER){
+		while(this.currentToken.getKind() == TokenKind.IDENTIFIER || this.currentToken.getKind() == TokenKind.NUMBER ||
+				this.currentToken.getKind() == TokenKind.FALSE || this.currentToken.getKind() == TokenKind.TRUE){
 			params = (parseParametersCallCommand());
 			hasParams = true;
 		}

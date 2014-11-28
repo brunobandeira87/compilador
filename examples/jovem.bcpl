@@ -1,6 +1,6 @@
 GLOBAL LET BOOL y = 5==5;
 
-LET VOID main() BE{
+LET VOID main(INT xy) BE{
 
 	//LET BOOL y =  TRUE == TRUE;
 	//LET INT y =  (4 * 1 * 2 + 1) * 5 - TRUE;
@@ -13,6 +13,6 @@ AND BOOL f1(INT a, INT b, INT c) = VALOF{
 }
 AND INT f2(INT z, BOOL h) = VALOF {
 	LET BOOL e = TRUE;
-	e = CALL f1(5,FALSE,TRUE);
-	RESULTIS 3;
+	e = CALL f1(5,2*2,3+1);
+	RESULTIS 3 * 4 * 3;
 }

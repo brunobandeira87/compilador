@@ -57,7 +57,7 @@ public final class Checker implements Visitor {
 		
 		if(program.getFunctionProcedureDefinitionList().getCallableDefinition() != null){
 			for(CallableDefinition call : program.getFunctionProcedureDefinitionList().getCallableDefinition()){
-				this.reference.add(call);
+				//this.reference.add(call);
 				//this.identificationTable.enter(call.getIdentifier().value, call);
 				this.reference.add(call);
 				callable.add((CallableDefinition)call.visit(this, null));
@@ -442,14 +442,40 @@ public final class Checker implements Visitor {
 		}
 	}
 
-	public Object visitCallCommand(CallCommand callCmd, Object arg)	throws SemanticException {
-		
-		
+	public Object visitCallCommand(CallCommand callCmd, Object arg)	throws SemanticException {	
 		
 		AST cmd = this.identificationTable.retrieve(callCmd.getIdentifier().getValue());
 		
 		if(cmd != null){
-			return cmd;
+			
+			ParametersCallCommand paramsTemp = (ParametersCallCommand) callCmd.getParams().visit(this, arg);
+			
+			ArrayList<Identifier> paramsProto = null;
+			
+			if(cmd instanceof ProcedureDefinition){
+				paramsProto = ((ProcedureDefinition) cmd).getParams().getIdentifier();
+			}else if(cmd instanceof FunctionDefinition){
+				paramsProto = ((FunctionDefinition) cmd).getParams().getIdentifier();
+			}
+			if(paramsProto.size() == paramsTemp.getParams().size()){
+				for(int i = 0; i < paramsProto.size() ; i++){
+					if(paramsProto.get(i).getTipo().equals(paramsTemp.getParams().get(i).getTipo())){
+						continue;
+					}
+					else{
+						throw new SemanticException("visitCallCommand => Passing a \'" + paramsTemp.getParams().get(i).getTipo() + "\' value instead of"
+								+ "\' " + paramsProto.get(i).getTipo() + "\' value.");
+					}
+				}
+			}
+			else{
+				throw new SemanticException("visitCallCommand => Number of arguments wrong. You have passed " + paramsTemp.getParams().size() + " arguments"
+						+ "instead of passing " +paramsProto.size() + "arguments." );
+			}
+			
+			
+			
+			return new CallCommand( callCmd.getIdentifier(), paramsTemp);
 		}
 		else{
 			throw new SemanticException("visitCallCommand => Function/Procedure not declared.");
@@ -555,8 +581,14 @@ public final class Checker implements Visitor {
 	}
 
 	public Object visitParametersCallCommand(ParametersCallCommand params,	Object arg) throws SemanticException {
-		// TODO Auto-generated method stub
-		return null;
+		
+		ArrayList<Factor> newPar = new ArrayList<Factor>();
+		
+		for(Factor x : params.getParams()){
+			newPar.add((Factor) x.visit(this, arg));
+		}
+				
+		return new ParametersCallCommand(newPar);
 	}
 
 	public Object visitResultIsCommand(ResultIsCommand resultCmd, Object arg) throws SemanticException {
