@@ -237,6 +237,7 @@ public class Parser {
 				tipo = this.currentToken.getSpelling();
 				acceptIt();
 				identifier = new Identifier(this.currentToken.getSpelling());
+				identifier.setTipo(tipo);
 				accept(TokenKind.IDENTIFIER);
 				accept(TokenKind.LPAR);
 				if(this.currentToken.getKind() == TokenKind.INT || this.currentToken.getKind() == TokenKind.BOOL){
@@ -258,7 +259,7 @@ public class Parser {
 				
 				accept(TokenKind.RCURL);
 				funcAST = new FunctionDefinition(tipo, identifier, parametersPrototype , command , variableDefinition);
-				funcAST.tipo = tipo;
+				//funcAST.tipo = tipo;
 				
 			break;
 			
@@ -283,6 +284,7 @@ public class Parser {
 		tipo = new Tipo(this.currentToken.getKind().toString(), this.currentToken.getSpelling());
 		accept(TokenKind.VOID);
 		identifier = new Identifier(this.currentToken.getSpelling());
+		identifier.setTipo("VOID");
 		accept(TokenKind.IDENTIFIER);
 		accept(TokenKind.LPAR);
 		if(this.currentToken.getKind() == TokenKind.INT ||
@@ -339,7 +341,7 @@ public class Parser {
 				}
 			}
 		}
-		procedureDefinitionAST.tipo = "VOID";
+		procedureDefinitionAST.setTipo("VOID");
 		
 		return procedureDefinitionAST;
 
@@ -464,7 +466,7 @@ public class Parser {
 		expression = parseExpression();
 		if(this.currentToken.getKind() == TokenKind.SEMICOL)
 			accept(TokenKind.SEMICOL);
-		resultIsCommandAST = new ResultIsCommand(expression);
+		resultIsCommandAST = new ResultIsCommand(null,expression);
 		return resultIsCommandAST;
 	}
 	
@@ -554,10 +556,10 @@ public class Parser {
 		accept(TokenKind.RPAR);
 		accept(TokenKind.SEMICOL);
 		if(hasParams){
-			callCommandAST = new CallCommand(identifier, params);
+			callCommandAST = new CallCommand(null,identifier, params);
 
 		}else{
-			callCommandAST = new CallCommand(identifier);			
+			callCommandAST = new CallCommand(null,identifier);			
 		}
 		return callCommandAST;
 	}
@@ -706,7 +708,7 @@ public class Parser {
 		}
 		if(this.currentToken.getKind() == TokenKind.SEMICOL)
 			accept(TokenKind.SEMICOL);
-		expressionAST = new Expression(left, operador, right);
+		expressionAST = new Expression(null, left, operador, right);
 		
 		return expressionAST;
 	}

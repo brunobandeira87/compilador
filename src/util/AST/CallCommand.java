@@ -10,7 +10,7 @@ public class CallCommand extends Command{
 	private Operator lpar;
 	private ParametersCallCommand parameters;
 	private Operator rpar;
-	
+	private String tipo;
 	
 	
 	private void setPar(){
@@ -24,17 +24,17 @@ public class CallCommand extends Command{
 
 
 
-	public CallCommand(Identifier identifier) {
+	public CallCommand(String tipo, Identifier identifier) {
 		this.setPar();
 		this.setReservedWord();
-		
+		this.tipo = tipo;
 		this.identifier = identifier;
 	}
 
 
 
-	public CallCommand(Identifier identifier, ParametersCallCommand parameters) {
-		
+	public CallCommand(String tipo, Identifier identifier, ParametersCallCommand parameters) {
+		this.tipo = tipo;
 		this.identifier = identifier;
 		this.parameters = parameters;
 		this.setPar();
@@ -48,6 +48,14 @@ public class CallCommand extends Command{
 
 	public ParametersCallCommand getParams(){
 		return this.parameters;
+	}
+	
+	public String getTipo(){
+		return this.tipo;
+	}
+	
+	public void setTipo(String tipo){
+		this.tipo = tipo;
 	}
 	
 	

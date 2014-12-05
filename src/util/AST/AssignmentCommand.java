@@ -9,7 +9,7 @@ public class AssignmentCommand extends Command{
 	private Operator equalSign;
 	private Expression expression;
 	private CallCommand callCommand;
-	
+	private String tipo;
 	
 
 	private void setEqualSign(){
@@ -20,7 +20,7 @@ public class AssignmentCommand extends Command{
 		this.identifier = identifier;
 		this.expression = expression;
 		this.setEqualSign();
-		super.tipo = this.expression.tipo;
+		this.tipo = this.expression.getTipo();
 	}
 	
 	public AssignmentCommand(Identifier identifier, CallCommand callCommand){
@@ -39,6 +39,14 @@ public class AssignmentCommand extends Command{
 	
 	public CallCommand getCallCommand(){
 		return this.callCommand;
+	}
+	
+	public String getTipo(){
+		return this.tipo;
+	}
+	
+	public void setTipo(String tipo){
+		this.tipo = tipo;
 	}
 	
 	@Override

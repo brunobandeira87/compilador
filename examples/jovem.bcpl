@@ -1,6 +1,6 @@
 GLOBAL LET BOOL y = 5==5;
 
-LET VOID main(INT xy) BE{
+LET VOID main() BE{
 
 	//LET BOOL y =  TRUE == TRUE;
 	//LET INT y =  (4 * 1 * 2 + 1) * 5 - TRUE;

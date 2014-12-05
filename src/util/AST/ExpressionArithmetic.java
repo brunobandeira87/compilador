@@ -9,7 +9,8 @@ public class ExpressionArithmetic extends AST{
 	private ExpressionMultiplication expressionMultiplicationLeft;
 	private ArrayList<Operator> operadores ;
 	private ArrayList<ExpressionMultiplication> expressionMultiplicationOthers;
-
+	private String tipo; 
+	
 	public ExpressionMultiplication getExpressionMultiplicationLeft() {
 		return expressionMultiplicationLeft;
 	}
@@ -22,8 +23,7 @@ public class ExpressionArithmetic extends AST{
 		return expressionMultiplicationOthers;
 	}
 
-	public ExpressionArithmetic(ExpressionMultiplication expressionMultiplicationLeft,
-			ArrayList<Operator> operadores,
+	public ExpressionArithmetic(ExpressionMultiplication expressionMultiplicationLeft,	ArrayList<Operator> operadores,
 			ArrayList<ExpressionMultiplication> expressionMultiplicationOthers) {
 		this.expressionMultiplicationLeft = expressionMultiplicationLeft;
 		this.operadores = operadores;
@@ -33,7 +33,11 @@ public class ExpressionArithmetic extends AST{
 
 	public ExpressionArithmetic(ExpressionMultiplication expressionMultiplicationLeft) {
 		this.expressionMultiplicationLeft = expressionMultiplicationLeft;
-		super.tipo = this.expressionMultiplicationLeft.tipo;
+		this.tipo = this.expressionMultiplicationLeft.getTipo();
+	}
+	
+	public void setTipo(String tipo){
+		this.tipo = tipo;
 	}
 	
 	@Override

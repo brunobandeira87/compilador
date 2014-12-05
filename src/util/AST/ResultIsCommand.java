@@ -7,11 +7,13 @@ public class ResultIsCommand extends Command{
 
 	private ReservedWord reservedWord;
 	private Expression expression;	
+	private String tipo;
 	
 	
-	public ResultIsCommand(Expression expression) {
+	public ResultIsCommand(String tipo, Expression expression) {
 		this.reservedWord = new ReservedWord(TokenKind.RESULTIS.toString());
 		this.expression = expression;
+		this.tipo = tipo;
 	}
 
 	public Expression getExpression(){

@@ -9,12 +9,15 @@ public class Expression extends Factor{
 	private ExpressionArithmetic left;
 	private ExpressionArithmetic right;
 	private Operator operator;
+	private String tipo;
 	
 	
-	public Expression(ExpressionArithmetic left){
+	public Expression(String tipo, ExpressionArithmetic left){
+		this.tipo = tipo;
 		this.left = left;
 	}
-	public Expression(ExpressionArithmetic left, Operator operator, ExpressionArithmetic right){
+	public Expression(String tipo, ExpressionArithmetic left, Operator operator, ExpressionArithmetic right){
+		this.tipo = tipo;
 		this.left = left;
 		this.right = right;
 		this.operator = operator;
@@ -32,6 +35,13 @@ public class Expression extends Factor{
 		return this.operator;
 	}
 	
+	public String getTipo(){
+		return this.tipo;
+	}
+	
+	public void setTipo(String tipo){
+		this.tipo = tipo;
+	}
 	
 	//private String tipo;
 	/*
@@ -88,15 +98,15 @@ public class Expression extends Factor{
 	@Override
 	public boolean equals(Object obj) {
 		if(obj instanceof Expression){
-			return this.tipo.equals(((Expression)obj).tipo);
+			return this.tipo.equals(((Expression)obj).getTipo());
 		}else if(obj instanceof Number){
-			return this.tipo.equals(((Number)obj).tipo);
+			return this.tipo.equals(((Number)obj).getTipo());
 		}
 		else if(obj instanceof Identifier){
-			return this.tipo.equals(((Identifier)obj).tipo);
+			return this.tipo.equals(((Identifier)obj).getTipo());
 		}
 		else if(obj instanceof Bool){
-			return this.tipo.equals(((Bool)obj).tipo);
+			return this.tipo.equals(((Bool)obj).getTipo());
 		}
 		else{
 			return false;
@@ -104,10 +114,5 @@ public class Expression extends Factor{
 
 	}
 	
-	@Override
-	public String getTipo() {
-		// TODO Auto-generated method stub
-		return this.tipo;
-	}
-	
+
 }

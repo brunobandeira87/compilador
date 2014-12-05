@@ -3,6 +3,7 @@ package compiler;
 
 import checker.Checker;
 import checker.SemanticException;
+import encoder.Encoder;
 import parser.Parser;
 import parser.SyntacticException;
 import util.AST.AST;
@@ -57,12 +58,13 @@ public class Compiler {
 		
 			Checker checker = new Checker();
 			try{
-				checker.check(astRoot);
+				AST astRoot2 = checker.check(astRoot);
 				System.out.println("3 - Semantic Step [OK]");
+				Encoder encoder = new Encoder();
+				encoder.encode(astRoot2);
 			} catch(SemanticException e){
 				System.out.println(((SemanticException)e).getMessage().toString());
 			}
-			
 		}
 		catch (SyntacticException e) {
 

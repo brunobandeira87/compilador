@@ -8,11 +8,18 @@ public class VariableGlobalDefinition extends AST{
 
 	private ReservedWord reserverdWord;
 	private VariableDefinition variableDefinition;
+	private String tipo;
 	
 	
 	public VariableGlobalDefinition(VariableDefinition variableDefinition) {
 		this.reserverdWord = new ReservedWord(TokenKind.GLOBAL.toString()); 
 		this.variableDefinition = variableDefinition;
+		if(variableDefinition instanceof IntVariableDefinition){
+			this.tipo = "INT";
+		}
+		else{
+			this.tipo = "BOOL";
+		}
 	}
 	
 	public ReservedWord getReservedWord(){
@@ -21,6 +28,14 @@ public class VariableGlobalDefinition extends AST{
 	
 	public VariableDefinition getVariableDefinition(){
 		return this.variableDefinition;
+	}
+	
+	public String getTipo(){
+		return this.tipo;
+	}
+	
+	public void setTipo(String tipo){
+		this.tipo = tipo;
 	}
 	
 	@Override

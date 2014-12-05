@@ -21,9 +21,15 @@ public class BoolVariableDefinition extends VariableDefinition {
 	public String getTipo(){
 		return this.tipo;
 	}
+	
 	public Expression getExpression(){
 		return this.expression;
 	}
+	
+	public void setTipo(String tipo){
+		this.tipo = tipo;
+	}
+	
 	
 	@Override
 	public Identifier getIdentifier(){

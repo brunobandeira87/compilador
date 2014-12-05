@@ -26,6 +26,10 @@ public class IntVariableDefinition extends VariableDefinition{
 		return this.tipo;
 	} 
 	
+	public void setTipo(String tipo){
+		this.tipo = tipo;
+	}
+	
 	public Terminal getSign(){
 		return this.equalSign;
 	}

@@ -4,6 +4,7 @@ import checker.SemanticException;
 
 public class Identifier extends Factor{
 
+	private String tipo;
 	private String value;
 	//private String spelling;
 		
@@ -22,13 +23,17 @@ public class Identifier extends Factor{
 		return this.value;
 	}
 	
+	public void setTipo(String tipo){
+		this.tipo = tipo;
+	}
+	
 	@Override
 	public Object visit(Visitor v, Object arg) throws SemanticException {
 		// TODO Auto-generated method stub
 		return v.visitIdentifier(this, arg);
 	}
 	
-	@Override
+	
 	public String getTipo() {
 		// TODO Auto-generated method stub
 		return this.tipo;

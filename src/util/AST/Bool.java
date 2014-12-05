@@ -5,7 +5,7 @@ import checker.SemanticException;
 public class Bool extends Factor{
 
 	private String value;
-	
+	private String tipo;
 	public Bool(String value){
 		//super.spelling = spelling;
 		//super.value = value;
@@ -15,6 +15,14 @@ public class Bool extends Factor{
 	
 	public String getValue(){
 		return this.value;
+	}
+	
+	public void setTipo(String tipo){
+		this.tipo = tipo;
+	}
+	public String getTipo() {
+		// TODO Auto-generated method stub
+		return this.tipo;
 	}
 	
 	@Override
@@ -37,10 +45,6 @@ public class Bool extends Factor{
 		}
 	}
 	
-	@Override
-	public String getTipo() {
-		// TODO Auto-generated method stub
-		return this.tipo;
-	}
+
 
 }

@@ -17,14 +17,16 @@ public final class Checker implements Visitor {
 	private Vector<Object> reference;
 	
 
-	public void check(AST ast) throws SemanticException{
-		
+	public AST check(AST ast) throws SemanticException{
+		Object newAST = null;
 		this.identificationTable = new IdentificationTable();
 		try{
-			ast.visit(this,null);
+			newAST =  ast.visit(this,null);
+			
 		}catch(SemanticException e){
 			e.printStackTrace();
 		}
+		return (AST)newAST; 
 	}
 	
 	public Checker(){
@@ -41,17 +43,20 @@ public final class Checker implements Visitor {
 			for(VariableGlobalDefinition var : program.getVariableGlobalDefinition()){
 				Object v1 = var.visit(this, null);
 				if(v1 instanceof IntVariableDefinition){
-					((VariableDefinition)v1).tipo = ((IntVariableDefinition)v1).getTipo();
+					//((IntVariableDefinition)v1).seipo = ((IntVariableDefinition)v1).getTipo();
+					VariableGlobalDefinition vg = new VariableGlobalDefinition(((IntVariableDefinition)v1));
+					varGlobal.add(vg);
+				//	vg.tipo = (((IntVariableDefinition)v1)).getTipo();
+					
 				}
 				else if(v1 instanceof BoolVariableDefinition){
-					((VariableDefinition)v1).tipo = ((BoolVariableDefinition)v1).getTipo();
+					VariableGlobalDefinition vg = new VariableGlobalDefinition((BoolVariableDefinition)v1);
+					varGlobal.add(vg);
 				}
 				else {
 					throw new SemanticException("ERROR!!");
 				}
-				VariableGlobalDefinition vg = new VariableGlobalDefinition((VariableDefinition)v1);
-				vg.tipo = ((VariableDefinition)v1).getTipo();
-				varGlobal.add(vg);
+							
 			}
 		}
 		
@@ -72,7 +77,7 @@ public final class Checker implements Visitor {
 		functionProcedureDefinitionList = new FunctionProcedureDefinitionList(null, callable);
 		
 		programAST = new Program(varGlobal, functionProcedureDefinitionList);
-		
+		program = programAST;
 		return programAST;
 	}
 
@@ -236,7 +241,7 @@ public final class Checker implements Visitor {
 				throw new SemanticException("visitFunctionDefinition => Function MUST have at least one RESULTIS Statement.");
 			}
 			
-			funcDefAST = new FunctionDefinition(funcDef.getIdentifier(), null, variables, commands);
+			funcDefAST = new FunctionDefinition(funcDef.getTipo(),funcDef.getIdentifier(), funcDef.getParams(),commands, variables);
 			funcDefAST.setHasReturn();
 
 			this.identificationTable.closeScope();
@@ -261,7 +266,7 @@ public final class Checker implements Visitor {
 			this.identificationTable.enter(procDef.getIdentifier().getValue(), procDef);
 			
 			params = procDef.getParams();
-			Object paramsTemp;
+			Object paramsTemp = null;
 			if(params != null)
 				paramsTemp = params.visit(this, procDef);
 			
@@ -302,7 +307,7 @@ public final class Checker implements Visitor {
 				
 			}
 			this.identificationTable.closeScope();
-			procDefAST = new ProcedureDefinition(procDef.getIdentifier(), variables, commands, params);
+			procDefAST = new ProcedureDefinition(procDef.getIdentifier(), variables, commands, (ParametersPrototype) paramsTemp);
 			return procDefAST;
 
 		}
@@ -342,7 +347,7 @@ public final class Checker implements Visitor {
 			
 			while(tipoTempIt.hasNext() && idTempIt.hasNext()){
 				Object idCurrent = idTempIt.next();
-				((Identifier)idCurrent).tipo = ((Tipo)(tipoTempIt.next())).value;
+				((Identifier)idCurrent).setTipo(((Tipo)(tipoTempIt.next())).value);
 				idTempIt.set(idCurrent);
 			}		
 			
@@ -368,8 +373,8 @@ public final class Checker implements Visitor {
 	public Object visitAssignmentCommand(AssignmentCommand assign, Object arg) throws SemanticException {
 		AssignmentCommand asgn = null;
 		Identifier id = null;
-		CallCommand command;
 		Object ast = this.identificationTable.retrieve(assign.getIdentifier().getValue());
+		
 		if(ast != null){
 			Object tmp = assign.getExpression();
 			
@@ -379,6 +384,7 @@ public final class Checker implements Visitor {
 					if(ast instanceof IntVariableDefinition){
 						if(((IntVariableDefinition)ast).getTipo().equals(((Expression)exp).getTipo())){
 							id = new Identifier(((IntVariableDefinition)ast).getIdentifier().getValue());
+							id.setTipo("INT");
 						}
 						else{
 							throw new SemanticException("AssignmentCommand => Trying to assign different types of data");
@@ -387,6 +393,7 @@ public final class Checker implements Visitor {
 					else if(ast instanceof BoolVariableDefinition){
 						if(((BoolVariableDefinition)ast).getTipo().equals(((Expression)exp).getTipo())){
 							id = new Identifier(((BoolVariableDefinition)ast).getIdentifier().getValue());
+							id.setTipo("BOOL");
 						}
 						else{
 							throw new SemanticException("AssignmentCommand => Trying to assign different types of data");
@@ -395,9 +402,14 @@ public final class Checker implements Visitor {
 					else{
 						throw new SemanticException("AssignmentCommand => Unknown data type");
 					}
-					
-					asgn = new AssignmentCommand(id, (Expression) exp);
-					return asgn;
+					if(id.getTipo().equals(((Expression)exp).getTipo())){
+						asgn = new AssignmentCommand(id, (Expression) exp);
+						asgn.setTipo(id.getTipo());
+						return asgn;
+					}
+					else{
+						throw new SemanticException("AssignmentCommand => Trying to assign different types of data");
+					}
 					
 					
 				}
@@ -421,11 +433,16 @@ public final class Checker implements Visitor {
 							}
 							
 							if(tipo.equals(tipo2)){
-								return assign;
+								asgn = new AssignmentCommand(cmd.getIdentifier(), (CallCommand)tmp );
+								asgn.setTipo(tipo2);
+								return asgn;
 							}
 							else{
 								throw new SemanticException("visitAssignmentCommand => Trying to attribute different data types");
 							}
+						}
+						else{
+							throw new SemanticException("visitAssignmentCommand => Trying to attribute a VOID function as a value");
 						}
 					}
 				}
@@ -445,37 +462,51 @@ public final class Checker implements Visitor {
 	public Object visitCallCommand(CallCommand callCmd, Object arg)	throws SemanticException {	
 		
 		AST cmd = this.identificationTable.retrieve(callCmd.getIdentifier().getValue());
-		
+		String tipo = "";
 		if(cmd != null){
-			
-			ParametersCallCommand paramsTemp = (ParametersCallCommand) callCmd.getParams().visit(this, arg);
-			
-			ArrayList<Identifier> paramsProto = null;
-			
-			if(cmd instanceof ProcedureDefinition){
-				paramsProto = ((ProcedureDefinition) cmd).getParams().getIdentifier();
-			}else if(cmd instanceof FunctionDefinition){
-				paramsProto = ((FunctionDefinition) cmd).getParams().getIdentifier();
-			}
-			if(paramsProto.size() == paramsTemp.getParams().size()){
-				for(int i = 0; i < paramsProto.size() ; i++){
-					if(paramsProto.get(i).getTipo().equals(paramsTemp.getParams().get(i).getTipo())){
-						continue;
-					}
-					else{
-						throw new SemanticException("visitCallCommand => Passing a \'" + paramsTemp.getParams().get(i).getTipo() + "\' value instead of"
-								+ "\' " + paramsProto.get(i).getTipo() + "\' value.");
+			if((ParametersCallCommand) callCmd.getParams() != null){
+				ParametersCallCommand paramsTemp = (ParametersCallCommand) callCmd.getParams().visit(this, arg);
+				
+				ArrayList<Identifier> paramsProto = null;
+				
+				if(cmd instanceof ProcedureDefinition){
+					paramsProto = ((ProcedureDefinition) cmd).getParams().getIdentifier();
+					tipo = ((ProcedureDefinition)cmd).getTipo();
+				}else if(cmd instanceof FunctionDefinition){
+					paramsProto = ((FunctionDefinition) cmd).getParams().getIdentifier();
+					tipo = ((FunctionDefinition)cmd).getTipo();
+				}
+				if(paramsProto.size() == paramsTemp.getParams().size()){
+					for(int i = 0; i < paramsProto.size() ; i++){
+						if(paramsProto.get(i).getTipo().equals(paramsTemp.getParams().get(i).getTipo())){
+							continue;
+						}
+						else{
+							throw new SemanticException("visitCallCommand => Passing a \'" + paramsTemp.getParams().get(i).getTipo() + "\' value instead of"
+									+ "\' " + paramsProto.get(i).getTipo() + "\' value.");
+						}
 					}
 				}
+				else{
+					throw new SemanticException("visitCallCommand => Number of arguments wrong. You have passed " + paramsTemp.getParams().size() + " arguments"
+							+ "instead of passing " +paramsProto.size() + "arguments." );
+				}
+				return new CallCommand( tipo, callCmd.getIdentifier(), paramsTemp);
+				
 			}
 			else{
-				throw new SemanticException("visitCallCommand => Number of arguments wrong. You have passed " + paramsTemp.getParams().size() + " arguments"
-						+ "instead of passing " +paramsProto.size() + "arguments." );
+				
+				if(cmd instanceof ProcedureDefinition){
+				
+					tipo = ((ProcedureDefinition)cmd).getTipo();
+				}else if(cmd instanceof FunctionDefinition){
+				
+					tipo = ((FunctionDefinition)cmd).getTipo();
+				}
+				
+				return new CallCommand(tipo, callCmd.getIdentifier());
 			}
 			
-			
-			
-			return new CallCommand( callCmd.getIdentifier(), paramsTemp);
 		}
 		else{
 			throw new SemanticException("visitCallCommand => Function/Procedure not declared.");
@@ -608,7 +639,7 @@ public final class Checker implements Visitor {
 			if(((Expression)ex).getTipo().equals(def.getTipo())){
 				((FunctionDefinition) funcProc).setHasReturn();
 				((Vector<Object>)arg).insertElementAt(funcProc, 0);
-				ResultIsCommand rc = new ResultIsCommand((Expression)ex);
+				ResultIsCommand rc = new ResultIsCommand(((Expression)ex).getTipo(),(Expression)ex);
 				return rc;
 			}
 			else{
@@ -679,8 +710,8 @@ public final class Checker implements Visitor {
 				if(operador.value.equals(">") || operador.value.equals("<") || 
 						operador.value.equals(">=") || operador.value.equals("<=") ||
 						operador.value.equals("==") || operador.value.equals("!=")){
-					expressionAST = new Expression(esquerdo, operador, direita);
-					expressionAST.tipo = "BOOL";
+					expressionAST = new Expression("BOOL",esquerdo, operador, direita);
+					
 					return expressionAST;
 				}
 				
@@ -688,8 +719,8 @@ public final class Checker implements Visitor {
 			}else if(direita.getTipo().equals(esquerdo.getTipo()) && esquerdo.getTipo().equals("BOOL") &&
 					direita.getTipo().equals("BOOL")){
 				if(operador.value.equals("==") || operador.value.equals("!=")){
-					expressionAST = new Expression(esquerdo, operador, direita);
-					expressionAST.tipo = esquerdo.getTipo();
+					expressionAST = new Expression("BOOL",esquerdo, operador, direita);
+					
 					return expressionAST;
 				}
 				else{
@@ -705,8 +736,8 @@ public final class Checker implements Visitor {
 			
 		
 		
-		expressionAST = new Expression(esquerdo, operador, direita);
-		expressionAST.tipo = esquerdo.getTipo();
+		expressionAST = new Expression(esquerdo.getTipo(),esquerdo, operador, direita);
+		
 		return expressionAST;
 	}
 
@@ -724,10 +755,12 @@ public final class Checker implements Visitor {
 			type1 = ((ExpressionMultiplication)temp).visit(this, arg);
 			if(type1 instanceof ExpressionMultiplication){
 				esquerdo = ((ExpressionMultiplication)type1);
-				esquerdo.tipo = ((ExpressionMultiplication)type1).getTipo();
+				esquerdo.setTipo(((ExpressionMultiplication)type1).getTipo());
 			}
 			
 		
+		}else{
+			throw new SemanticException("visitExpressionArithmetic: error!");
 		}
 		
 		Object right = expAri.getExpressionMultiplicationOthers();
@@ -737,8 +770,8 @@ public final class Checker implements Visitor {
 				type2 = exp.visit(this, arg);
 							
 				
-				if(esquerdo.equals(type2) && esquerdo.tipo.equals("INT")){
-					
+				if(esquerdo.equals(type2) && esquerdo.getTipo().equals("INT")){
+					((ExpressionMultiplication)type2).setTipo("INT");
 					others.add(((ExpressionMultiplication)type2));
 				}else{
 					throw new SemanticException("visitExpressionArithmetic => Mismacth type");
@@ -746,11 +779,11 @@ public final class Checker implements Visitor {
 			}
 		}
 		else{
-			return ((Factor)type1).tipo;
+			return ((Factor)type1).getTipo();
 		}
 		
 		expAST = new ExpressionArithmetic(esquerdo, operadores, others);
-		expAST.tipo = esquerdo.getTipo();
+		expAST.setTipo(esquerdo.getTipo());
 		return expAST;
 	}
 
@@ -780,7 +813,7 @@ public final class Checker implements Visitor {
 			 }
 		}
 		else{
-			return null;
+			throw new SemanticException("visitExpressionMultiplication: error!");
 		}
 			
 		
@@ -793,7 +826,7 @@ public final class Checker implements Visitor {
 					if(f instanceof Number){
 						others.add(((Number)f));
 					}else if(f instanceof Bool){
-						if(esquerdo.tipo.equals("BOOL") && 
+						if(esquerdo.getTipo().equals("BOOL") && 
 								(operadores != null && (!operadores.get(operadorIndex).value.equals("*") || !operadores.get(operadorIndex).value.equals("*")))){
 							others.add(((Bool)f));
 						}else{
@@ -820,7 +853,7 @@ public final class Checker implements Visitor {
 		}
 
 		expAST = new ExpressionMultiplication(esquerdo, expMul.getOperadores(), others);
-		expAST.tipo = esquerdo.tipo;
+		expAST.setTipo (esquerdo.getTipo());
 		return expAST;
 	}
 
@@ -848,19 +881,23 @@ public final class Checker implements Visitor {
 	}
 
 	public Object visitIdentifier(Identifier identifier, Object obj) throws SemanticException {
+		Identifier idAST;
 		AST ast = this.identificationTable.retrieve(identifier.getValue());
 		if(ast != null){
 		//System.out.println(identifier.getValue() + "\n");
 			if(ast instanceof IntVariableDefinition){
-				identifier.tipo = ((IntVariableDefinition)ast).getTipo();
+				idAST = new Identifier(((IntVariableDefinition)ast).getIdentifier().toString());
+				idAST.setTipo("INT");
+				
 			}else if(ast instanceof BoolVariableDefinition){
-				identifier.tipo = ((BoolVariableDefinition)ast).getTipo();
+				idAST = new Identifier(((BoolVariableDefinition)ast).getIdentifier().toString());
+				idAST.setTipo("BOOL");
 			}
 			else{
 				throw new SemanticException("visitIdentifier => Variable has different type");
 			}
 			
-			return identifier;
+			return idAST;
 		}else{
 			throw new SemanticException("visitIdentifier => Variable \'" + identifier.getValue() + "\' Not declared");
 		}
@@ -869,13 +906,13 @@ public final class Checker implements Visitor {
 	public Object visitNumber(Number number, Object obj) throws SemanticException {
 
 		//System.out.println(number.getValue() + "\n");
-		number.tipo = "INT";
+		number.setTipo("INT");
 		return number;
 	}
 
 	public Object visitBoolean(Bool bool, Object obj) throws SemanticException {
 		//System.out.println(bool.getValue());
-		bool.tipo = "BOOL";
+		bool.setTipo("BOOL");
 		return bool;
 	}
 

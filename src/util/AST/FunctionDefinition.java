@@ -8,7 +8,7 @@ import sun.org.mozilla.javascript.internal.ast.VariableDeclaration;
 
 public class FunctionDefinition extends CallableDefinition{
 
-	public String tipo;
+	private String tipo;
 	private ArrayList<Terminal> terminal = new ArrayList<Terminal>();
 	private Identifier identifier;
 	private ParametersPrototype parameters; 
@@ -39,9 +39,7 @@ public class FunctionDefinition extends CallableDefinition{
 		return this.hasReturn;
 	}
 	
-	public FunctionDefinition(String tipo, 
-			Identifier identifier, ParametersPrototype parameters,
-			ArrayList<Command> command,
+	public FunctionDefinition(String tipo, 	Identifier identifier, ParametersPrototype parameters, ArrayList<Command> command,
 			ArrayList<VariableDefinition> variableDefinition) {
 		this.tipo = tipo;
 		
@@ -52,8 +50,7 @@ public class FunctionDefinition extends CallableDefinition{
 		this.setTerminal();
 	}
 
-	public FunctionDefinition(Identifier identifier,
-			ParametersPrototype parameters,ArrayList<VariableDefinition> variableDefinition,
+	public FunctionDefinition(Identifier identifier,ParametersPrototype parameters,ArrayList<VariableDefinition> variableDefinition,
 			ArrayList<Command> command) {
 		this.identifier = identifier;
 		this.parameters = parameters;

@@ -8,6 +8,7 @@ public class ExpressionMultiplication extends AST{
 	protected Factor factorLeft;
 	protected ArrayList<Operator> operadores;
 	protected ArrayList<Factor> factorOthers;
+	protected String tipo;
 	
 	
 	public Factor getFactorLeft() {
@@ -34,6 +35,10 @@ public class ExpressionMultiplication extends AST{
 	
 	public String getTipo(){
 		return this.tipo;
+	}
+	
+	public void setTipo(String tipo){
+		this.tipo = tipo;
 	}
 	
 	@Override

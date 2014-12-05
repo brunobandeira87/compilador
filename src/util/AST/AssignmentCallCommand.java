@@ -5,7 +5,7 @@ import checker.SemanticException;
 public class AssignmentCallCommand extends Factor{
 
 	private CallCommand callCommand;
-	
+	private String tipo;
 	
 	public AssignmentCallCommand(CallCommand callCommand) {
 		// TODO Auto-generated constructor stub
@@ -15,6 +15,14 @@ public class AssignmentCallCommand extends Factor{
 	
 	public CallCommand getCallCommand(){
 		return this.callCommand;
+	}
+	
+	public String getTipo(){
+		return this.tipo;
+	}
+	
+	public void setTipo(String tipo){
+		this.tipo = tipo;
 	}
 	
 	@Override
@@ -29,16 +37,12 @@ public class AssignmentCallCommand extends Factor{
 		return null;
 	}
 	
-	@Override
-	public String getTipo() {
-		// TODO Auto-generated method stub
-		return this.tipo;
-	}
+
 	
 	@Override
 	public boolean equals(Object obj) {
 		if(obj instanceof AssignmentCallCommand){
-			return this.tipo.equals(((AssignmentCallCommand)obj).tipo);
+			return this.tipo.equals(((AssignmentCallCommand)obj).getTipo());
 		}else{
 			return false;
 		}

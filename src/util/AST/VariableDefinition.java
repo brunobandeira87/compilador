@@ -4,5 +4,5 @@ public abstract class VariableDefinition  extends AST {
 
 	public abstract Identifier getIdentifier();
 	
-	public abstract String getTipo();
+	//public abstract String getTipo();
 }

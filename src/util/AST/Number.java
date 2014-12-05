@@ -5,17 +5,25 @@ import checker.SemanticException;
 public class Number extends Factor{
 	
 	private String value;
+	private String tipo;
 	
 	public Number(String value){
-		super.tipo = "INT";
+		this.tipo = "INT";
 		this.value = value;
 		
+	}
+	
+	public void setTipo(String tipo){
+		this.tipo = tipo;
 	}
 	
 	public String getValue(){
 		return this.value;
 	}
 	
+	public String getTipo(){
+		return this.tipo;
+	}
 	
 
 	@Override
@@ -30,21 +38,17 @@ public class Number extends Factor{
 		return v.visitNumber(this, arg);
 	}
 	
-	@Override
-	public String getTipo() {
-		// TODO Auto-generated method stub
-		return this.tipo;
-	}
+	
 	@Override
 	public boolean equals(Object obj) {
 		if(obj instanceof Number){
 			return this.tipo.equals(((Number)obj).tipo);
 		}
 		else if(obj instanceof Identifier){
-			return this.tipo.equals(((Identifier)obj).tipo);
+			return this.tipo.equals(((Identifier)obj).getTipo());
 		}
 		else if(obj instanceof Expression){
-			return this.tipo.equals(((Expression)obj).tipo);
+			return this.tipo.equals(((Expression)obj).getTipo());
 		}
 		
 		else{
