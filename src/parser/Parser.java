@@ -526,14 +526,24 @@ public class Parser {
 		
 		PrintCommand printCommandAST; 
 		Expression expression;
+		Factor id;
 		
 		accept(TokenKind.WRITEF);
-		accept(TokenKind.QUOTE);
-		expression = parseExpression();
-		accept(TokenKind.QUOTE);
+		accept(TokenKind.LPAR);
+		if(this.currentToken.getKind() == TokenKind.IDENTIFIER){
+			id = parseFactor();
+
+			printCommandAST = new PrintCommand((Identifier)id);
+		}
+		else{
+			accept(TokenKind.QUOTE);
+			expression = parseExpression();
+			accept(TokenKind.QUOTE);
+			printCommandAST = new PrintCommand(expression);
+		}
+		accept(TokenKind.RPAR);
 		accept(TokenKind.SEMICOL);
 		
-		printCommandAST = new PrintCommand(expression);
 		
 		return printCommandAST;
 		

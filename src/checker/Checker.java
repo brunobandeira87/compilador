@@ -582,7 +582,16 @@ public final class Checker implements Visitor {
 	}
 
 	public Object visitPrintCommand(PrintCommand printCmd, Object arg)	throws SemanticException {
-
+		
+		Object identifier;
+		PrintCommand pAST;
+		if(printCmd.getIdentifier() != null){
+			identifier = printCmd.getIdentifier().visit(this, arg);
+			Identifier temp = (Identifier) identifier; 
+			pAST = new PrintCommand(temp);
+			return pAST;
+		}
+		
 		return null;
 	}
 
@@ -590,6 +599,7 @@ public final class Checker implements Visitor {
 		this.identificationTable.openScope();
 		Object exp = ifCmd.getExpression();
 		Expression e;
+		ElseCommand elseCommand = ifCmd.getElse();
 		ArrayList<Command> cmd =  new ArrayList<Command>();
 		IfCommand ic; 
 		if(arg instanceof Vector){
@@ -603,7 +613,7 @@ public final class Checker implements Visitor {
 		}
 		
 		Object commands = ifCmd.getCommand();
-		
+		int currentScope = this.identificationTable.getCurrentScope();
 		if(commands != null){
 			this.identificationTable.openScope();
 			for(Command c : ifCmd.getCommand()){
@@ -637,21 +647,67 @@ public final class Checker implements Visitor {
 				}
 				
 			}
+			
 			this.identificationTable.closeScope();
+			
+			if(elseCommand != null){
+				elseCommand = (ElseCommand) elseCommand.visit(this, ifCmd);
+			}
 		}
 		
-		ic = new IfCommand(e, cmd);
-		
+		ic = new IfCommand(e, cmd, elseCommand);
+		ic.setScope(currentScope);
 		return ic;
 	}
 
 	public Object visitElseCommand(ElseCommand elseCmd, Object arg) 	throws SemanticException {
+		
 		if(arg instanceof IfCommand){
-			return null;
+			ArrayList<Command> command = elseCmd.getCommand();
+			ArrayList<Command> cmd = new ArrayList<Command>();
+			int currentScope = this.identificationTable.getCurrentScope();
+			if(command != null){
+				this.identificationTable.openScope();
+				for(Command c : command){
+					if(c instanceof IfCommand){
+						cmd.add( (Command) ((IfCommand)c).visit(this, arg));
+					}
+					else if(c instanceof AssignmentCommand){
+						cmd.add( (Command) ((AssignmentCommand)c).visit(this, arg));
+					}
+					else if(c instanceof WhileCommand){
+						cmd.add( (Command) ((WhileCommand)c).visit(this,arg));
+					}
+					else if(c instanceof CallCommand){
+						cmd.add( (Command) ((CallCommand)c).visit(this,arg));
+					}
+					else if(c instanceof ContinueCommand){
+						cmd.add( (Command) ((ContinueCommand)c).visit(this, arg));
+					}
+					else if(c instanceof BreakCommand){
+						cmd.add( (Command) ((BreakCommand)c).visit(this, arg));
+						break;
+					}
+					else if(c instanceof ResultIsCommand){
+						cmd.add( (Command) ((ResultIsCommand)c).visit(this, arg));
+					}
+					else if(c instanceof ElseCommand){
+						cmd.add( (Command)  ((ElseCommand)c).visit(this, arg));
+					}
+					else if(c instanceof PrintCommand){
+						cmd.add( (Command) ((PrintCommand)c).visit(this, arg));
+					}
+				}
+				this.identificationTable.closeScope();
+				ElseCommand ecmd = new ElseCommand(cmd);
+				ecmd.setScope(currentScope);
+				return ecmd;
+			}
 		}
 		else{
 			throw new SemanticException("visitElseCommand => You MUST declare an IF Statement before using an ELSE Statement");
 		}
+		return null;
 	}
 
 	public Object visitParametersCallCommand(ParametersCallCommand params,	Object arg) throws SemanticException {
@@ -931,10 +987,23 @@ public final class Checker implements Visitor {
 			if(ast instanceof IntVariableDefinition){
 				idAST = new Identifier(((IntVariableDefinition)ast).getIdentifier().toString());
 				idAST.setTipo("INT");
+				idAST.setGlobal(((IntVariableDefinition)ast).global);
+				//idAST.setParameter(((BoolVariableDefinition)ast).getParameter());
+				idAST.setPosition(((IntVariableDefinition)ast).position);
 				
 			}else if(ast instanceof BoolVariableDefinition){
 				idAST = new Identifier(((BoolVariableDefinition)ast).getIdentifier().toString());
 				idAST.setTipo("BOOL");
+				idAST.setGlobal(((BoolVariableDefinition)ast).global);
+				//idAST.setParameter(((BoolVariableDefinition)ast).getParameter());
+				idAST.setPosition(((BoolVariableDefinition)ast).position);
+			}
+			else if(ast instanceof Identifier){
+				idAST = new Identifier(((Identifier)ast).getValue());
+				idAST.setTipo(((Identifier)ast).getTipo());
+				idAST.setGlobal(((Identifier)ast).getGlobal());
+				idAST.setParameter(((Identifier)ast).getParameter());
+				idAST.setPosition(((Identifier)ast).getPosition());
 			}
 			else{
 				throw new SemanticException("visitIdentifier => Variable has different type");

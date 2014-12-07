@@ -10,6 +10,7 @@ public class ElseCommand extends Command {
 	private ReservedWord reservedWord;
 	private ArrayList<Operator> operator;
 	private ArrayList<Command> command;
+	private int scope;
 	//private Expression expression;
 	
 	
@@ -27,7 +28,20 @@ public class ElseCommand extends Command {
 		//this.expression = expression;
 		this.setOperator();
 	}
+	
+	public ArrayList<Command> getCommand(){
+		return this.command;
+	}
 
+	public void setScope(int scope){
+		this.scope = scope;
+		
+	}
+	
+	public int getScope(){
+		return this.scope;
+	}
+	
 	@Override
 	public String toString(int level) {
 		// TODO Auto-generated method stub

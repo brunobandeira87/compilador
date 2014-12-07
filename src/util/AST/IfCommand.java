@@ -12,6 +12,7 @@ public class IfCommand extends Command{
 	private ArrayList<Command> command;
 	private ArrayList<Operator> operator;
 	private ElseCommand elseCommand;
+	private int scope;
 	
 	
 	private void setOperator(){
@@ -56,6 +57,14 @@ public class IfCommand extends Command{
 	
 	public ElseCommand getElse(){
 		return this.elseCommand;
+	}
+	
+	public int getScope(){
+		return this.scope;
+	}
+	
+	public void setScope(int scope){
+		this.scope = scope;
 	}
 
 	@Override

@@ -10,6 +10,7 @@ public class PrintCommand extends Command{
 	private ReservedWord reservedWord;
 	private Expression expression;
 	private ArrayList<Operator> operator;
+	private Identifier identifier;
 	
 	void setOperator(){
 		this.reservedWord = new ReservedWord(TokenKind.WRITEF.toString());
@@ -26,6 +27,16 @@ public class PrintCommand extends Command{
 		
 	}
 
+	public PrintCommand(Identifier identifier){
+		this.setOperator();
+		this.identifier = identifier;
+	}
+	
+	
+	public Identifier getIdentifier(){
+		return this.identifier;
+	}
+	
 	@Override
 	public String toString(int level) {
 		// TODO Auto-generated method stub

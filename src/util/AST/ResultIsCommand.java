@@ -16,6 +16,11 @@ public class ResultIsCommand extends Command{
 		this.tipo = tipo;
 	}
 
+	
+	public String getTipo(){
+		return this.tipo;
+	}
+	
 	public Expression getExpression(){
 		return this.expression;
 	}

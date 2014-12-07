@@ -50,6 +50,9 @@ public class Encoder implements Visitor{
 				 
 			 }
 		}
+		
+		this.buffer.append("\nintFormat: db \"%d\", 10, 0\n");
+		
 		this.buffer.append("\nSECTION .text\n\tglobal _WinMain@16\n");
 		for(CallableDefinition temp : functionsProcedures){
 			if(temp instanceof ProcedureDefinition){
@@ -127,6 +130,7 @@ public class Encoder implements Visitor{
 		
 		ArrayList<VariableDefinition> vars = funcDef.getVariable();
 		ParametersPrototype params = funcDef.getParams();
+		ArrayList<Command> commands = funcDef.getCommand();
 		int variablesNumber;
 		
 		
@@ -142,9 +146,6 @@ public class Encoder implements Visitor{
 		if(params != null){
 			params.visit(this, funcDef);
 		}
-		
-		
-		
 		
 		variablesNumber = vars.size();
 		
@@ -162,26 +163,32 @@ public class Encoder implements Visitor{
 				else if(temp instanceof BoolVariableDefinition){
 					((BoolVariableDefinition)temp).visit(this,vars);
 				}
+				
+				
 					
 			}
 		}
 		
-		/*
-		 * 
-		 * 	private String tipo;
-	private ArrayList<Terminal> terminal = new ArrayList<Terminal>();
-	private Identifier identifier;
-	private ParametersPrototype parameters; 
-	private ArrayList<Command> command;
-	private ArrayList<VariableDefinition> variableDefinition;
-	private boolean hasReturn;
-	
-		 * 
-		 * */
+		if(commands.isEmpty() == false){
+			
+			for(Command cmd : commands){
+				if(cmd instanceof AssignmentCommand){
+					((AssignmentCommand)cmd).visit(this, funcDef);
+				}
+				else if(cmd instanceof ResultIsCommand){
+					((ResultIsCommand)cmd).visit(this, funcDef);
+				}
+				else if(cmd instanceof PrintCommand){
+					((PrintCommand)cmd).visit(this, funcDef);
+				}
+				else if(cmd instanceof IfCommand){
+					((IfCommand)cmd).visit(this, funcDef);
+				}
+			}
+			
+		}
 		
-		// TODO Auto-generated method stub
-		
-		
+
 		this.buffer.append("\n\n\tmov esp, ebp");
         this.buffer.append("\n\tpop ebp");
         this.buffer.append("\n\tret\n");
@@ -235,26 +242,15 @@ public class Encoder implements Visitor{
 				if(com instanceof AssignmentCommand){
 					((AssignmentCommand)com).visit(this, procDef);
 				}
+				else if(com instanceof PrintCommand){
+					((PrintCommand)com).visit(this, procDef);
+				}
+				else if(com instanceof IfCommand){
+					((IfCommand)com).visit(this, procDef);
+				}
 			}
 		}
-		
-		
-		/*
-		 * 
-		 * 	private String tipo;
-			private ArrayList<Terminal> terminal = new ArrayList<Terminal>();
-			private Identifier identifier;
-			private ParametersPrototype parameters; 
-			private ArrayList<Command> command;
-			private ArrayList<VariableDefinition> variableDefinition;
-			private boolean hasReturn;
-	
-		 * 
-		 * */
-		
-		// TODO Auto-generated method stub
-		
-		
+
 		this.buffer.append("\n\n\tmov esp, ebp");
         this.buffer.append("\n\tpop ebp");
         this.buffer.append("\n\tret\n");
@@ -298,10 +294,10 @@ public class Encoder implements Visitor{
 			
 		}
 		else if(assign.getIdentifier().getParameter()){
-			this.buffer.append("\n\tpop [ebp+" + (assign.getIdentifier().getPosition() *4 +4) + "]");
+			this.buffer.append("\n\tpop dword [ebp+" + (assign.getIdentifier().getPosition() *4 +4) + "]");
 		}
 		else{
-			this.buffer.append("\n\tpop [ebp-" + (assign.getIdentifier().getPosition() *4) + "]");
+			this.buffer.append("\n\tpop dword [ebp-" + (assign.getIdentifier().getPosition() *4) + "]");
 		}
 		
 		return null;
@@ -327,19 +323,141 @@ public class Encoder implements Visitor{
 
 	@Override
 	public Object visitPrintCommand(PrintCommand printCmd, Object arg)	throws SemanticException {
-		// TODO Auto-generated method stub
+	
+		
+		Identifier identifier = printCmd.getIdentifier();
+		
+		if(identifier != null){
+			if(identifier.getGlobal() == false && identifier.getParameter() == false){
+				
+				this.buffer.append("\n\tpush dword [ebp-" + (identifier.getPosition() * 4) +"]");
+			}
+			else if(identifier.getGlobal()){
+				
+			}
+			else if(identifier.getParameter()){
+				this.buffer.append("\n\tpush dword [ebp+" + (identifier.getPosition() * 4 + 4) +"]");
+			}
+			
+			this.buffer.append("\n\tpush dword intFormat");
+			this.buffer.append("\n\tcall _printf");
+			this.buffer.append("\n\tadd esp, 8\n\n");
+		}
+		
 		return null;
 	}
 
 	@Override
 	public Object visitIfCommand(IfCommand ifCmd, Object arg) throws SemanticException {
-		// TODO Auto-generated method stub
-		return null;
+		Expression exp = ifCmd.getExpression();
+		Operator op = exp.getOperator();
+		ElseCommand elseCmd = ifCmd.getElse();
+		exp.visit(this,arg);
+		
+		ArrayList<Command> commands = ifCmd.getCommand();
+		
+		String jump = "\nj";
+		if(arg instanceof FunctionDefinition){
+			//this.buffer.append("\n\tcmp eax, ebx");
+			if(op != null){
+				if(op.value.equals("==")){
+					jump += "ne ";
+				}
+				else if(op.value.equals("!=")){
+					jump += "e ";
+				}
+				else if(op.value.equals(">")){
+					jump += "le ";
+				}
+				else if(op.value.equals("<")){
+					jump += "ge ";
+				}
+				else if(op.value.equals(">=")){
+					jump += "l ";
+				}
+				else if(op.value.equals("=<")){
+					jump += "g ";
+				}
+			}
+			if(elseCmd != null){
+				this.buffer.append("\n\t" + jump + "_" + ((FunctionDefinition)arg).getIdentifier().getValue() + "_Else_Block \n");
+			}
+			else{
+				this.buffer.append("\n\tjmp _" + ((FunctionDefinition)arg).getIdentifier().getValue() + "_End_If \n");
+				elseCmd.visit(this, arg);
+			}
+			
+			if(commands != null){
+				for(Command com : commands){
+					if(com instanceof PrintCommand){
+						((PrintCommand)com).visit(this, ifCmd);
+					}
+				}
+			}
+		}
+		else if(arg instanceof ProcedureDefinition){
+			if(op != null){
+				if(op.value.equals("==")){
+					jump += "ne ";
+				}
+				else if(op.value.equals("!=")){
+					jump += "e ";
+				}
+				else if(op.value.equals(">")){
+					jump += "le ";
+				}
+				else if(op.value.equals("<")){
+					jump += "ge ";
+				}
+				else if(op.value.equals(">=")){
+					jump += "l ";
+				}
+				else if(op.value.equals("=<")){
+					jump += "g ";
+				}
+				if(elseCmd != null){
+					
+					this.buffer.append("\n\t" + jump + "_" + ((ProcedureDefinition)arg).getIdentifier().getValue() + "_Else_Block \n");
+				}
+				else{
+					this.buffer.append("\n\t" + jump + "_" + ((ProcedureDefinition)arg).getIdentifier().getValue() + "_End_If \n");
+				}
+				if(commands != null){
+					
+					for(Command cmd : commands){
+						if(cmd instanceof PrintCommand){
+							((PrintCommand)cmd).visit(this, ifCmd);
+						}
+					}
+					//this.buffer.append()
+				}
+				if(elseCmd != null){
+					elseCmd.visit(this, arg);
+				}
+				
+				this.buffer.append("\n\t_" + ((ProcedureDefinition)arg).getIdentifier().getValue() + "_End_If: \n");
+			}
+		}
+		
+		
+			return null;
 	}
 
 	@Override
 	public Object visitElseCommand(ElseCommand elseCmd, Object arg) throws SemanticException {
 		// TODO Auto-generated method stub
+		
+		ArrayList<Command> commands = elseCmd.getCommand();
+		if(arg instanceof ProcedureDefinition){
+		
+			this.buffer.append("\n\t_" + ((ProcedureDefinition)arg).getIdentifier().getValue() + "_Else_Block: \n");
+			
+			
+		}
+		else if(arg instanceof FunctionDefinition){
+			
+		}
+		
 		return null;
 	}
 
@@ -351,7 +469,12 @@ public class Encoder implements Visitor{
 
 	@Override
 	public Object visitResultIsCommand(ResultIsCommand resultCmd, Object arg) throws SemanticException {
-		// TODO Auto-generated method stub
+		Expression exp = resultCmd.getExpression();
+		if(resultCmd.getTipo().equals("INT")){
+			exp.visit(this, arg);
+			this.buffer.append("\n\tpop eax\n");
+		}
+		
 		return null;
 	}
 
@@ -368,12 +491,16 @@ public class Encoder implements Visitor{
 		ExpressionArithmetic right = expression.getRight();
 		Operator op = expression.getOperator();
 		
-		if(left != null){
+		if(left != null && right != null){
 			left.visit(this, arg);
+			right.visit(this, arg);
+			this.buffer.append("\n\tpop ebx");
+			this.buffer.append("\n\tpop eax");
+			this.buffer.append("\n\tcmp eax,ebx");
 		}
 		
-		if(right != null){
-			right.visit(this, arg);
+		else if(left != null){
+			left.visit(this, arg);
 		}
 		
 		return null;
@@ -567,7 +694,17 @@ public class Encoder implements Visitor{
 
 	@Override
 	public Object visitIdentifier(Identifier identifier, Object obj) throws SemanticException {
-		// TODO Auto-generated method stub
+		if(identifier.getTipo().equals("INT")){
+			if(identifier.getParameter()){
+				this.buffer.append("\n\tpush dword [ebp+" + (identifier.getPosition()*4 +4) + "]");
+			}
+			else if(identifier.getGlobal() == false && identifier.getParameter() == false){
+				this.buffer.append("\n\tpush dword [ebp-" + (identifier.getPosition() * 4) + "]");
+			}
+			else if(identifier.getGlobal()){
+				this.buffer.append("\n\tpush dword [ebp+");
+			}
+		}
 		return null;
 	}
 
@@ -601,7 +738,7 @@ public class Encoder implements Visitor{
 			return "sub";
 		}
 		else if(operator.value.equals("*")){
-			return "mult";
+			return "imul";
 		}
 		else if(operator.value.equals("/")){
 			return "div";
