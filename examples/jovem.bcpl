@@ -1,12 +1,16 @@
-GLOBAL LET INT y = 203;
-
 LET VOID main() BE{
 
-	LET INT x = 20;
-	IF(5 < 2){
-		WRITEF(x);
+	LET INT x = 5;
+	IF(5 > 2){
+		IF(3+2 > 5){
+			WRITEF(x);
+		}
+		ELSE{
+			x = 4;
+		}
+		x = 23;	
 	}ELSE{
-		x = 4;
+		x = 45;
 	}
 	
 }

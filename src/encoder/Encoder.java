@@ -2,6 +2,7 @@ package encoder;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Vector;
 
 import com.sun.org.apache.xpath.internal.ExpressionNode;
 
@@ -19,18 +20,35 @@ public class Encoder implements Visitor{
 	private Arquivo asm;
 	private StringBuffer buffer;
 	private int numberLocalVar;
+	private Vector scopes;
 
 	public Encoder() {
 		this.file = new File("/home/bandeira/Desktop/teste.asm");
 		this.asm = new Arquivo(this.file.toString(), this.file.toString());
 		this.buffer = new StringBuffer();
 		this.numberLocalVar = 0;
+		this.scopes = new Vector<>();
 	}
 	
 	public void encode(AST ast) throws SemanticException{
 		
 		ast.visit(this, null);
 		this.asm.close();
+	}
+	
+	private String getIdentation(int scope){
+		String id = "";
+		
+		if(scope <= 0){
+			return id;
+		}
+		else{
+			for(int i = 0; i < scope; i++ ){
+				id +="\t";
+			}
+		}
+		return id;
+		
 	}
 	
 	@Override
@@ -101,7 +119,7 @@ public class Encoder implements Visitor{
 			
 		}
 		else{
-			this.buffer.append("\n\tpop [ebp-" + intVarDef.position*4 + "]");
+			this.buffer.append("\n\tpop dword [ebp-" + intVarDef.position*4 + "]");
 			
 		}
 		
@@ -119,7 +137,7 @@ public class Encoder implements Visitor{
 			
 		}
 		else{
-			this.buffer.append("\n\tpop [ebp-" + boolVarDef.position*4 + "]");
+			this.buffer.append("\n\tpop dword [ebp-" + boolVarDef.position*4 + "]");
 		}
 		
 		return null;
@@ -228,10 +246,10 @@ public class Encoder implements Visitor{
 			for(VariableDefinition temp : vars){
 				this.numberLocalVar++;
 				if(temp instanceof IntVariableDefinition){
-					((IntVariableDefinition)temp).visit(this,arg);
+					((IntVariableDefinition)temp).visit(this,procDef);
 				}
 				else if(temp instanceof BoolVariableDefinition){
-					((BoolVariableDefinition)temp).visit(this,arg);
+					((BoolVariableDefinition)temp).visit(this,procDef);
 				}
 					
 			}
@@ -285,6 +303,38 @@ public class Encoder implements Visitor{
 	public Object visitAssignmentCommand(AssignmentCommand assign, Object arg)	throws SemanticException {
 		Identifier identifier =  assign.getIdentifier();
 		Expression exp = assign.getExpression();
+		String tab = "";
+		
+		if(arg instanceof IfCommand){
+			tab = this.getIdentation( ((IfCommand)arg).getScope() );
+		}
+		else if(arg instanceof ElseCommand){
+			tab = this.getIdentation( ((ElseCommand)arg).getScope() );
+		}
+		else if(arg instanceof ProcedureDefinition || arg instanceof FunctionDefinition){
+			tab = this.getIdentation(1);
+		}
+		else if(arg instanceof WhileCommand){
+			tab = this.getIdentation( ((WhileCommand)arg).getScope() );
+		}
+		else if(arg instanceof AssignmentCommand){
+			tab = this.getIdentation( ((WhileCommand)arg).getScope() );
+		}
+		
+		else if(arg instanceof Vector){
+			if(((Vector)arg).lastElement() instanceof ElseCommand){
+				tab = this.getIdentation(((ElseCommand)(((Vector)arg).lastElement())).getScope());
+			}
+			else if(((Vector)arg).lastElement() instanceof WhileCommand){
+				tab = this.getIdentation(((WhileCommand)(((Vector)arg).lastElement())).getScope());
+			}
+			else if(((Vector)arg).lastElement() instanceof IfCommand){
+				tab = this.getIdentation(((IfCommand)(((Vector)arg).lastElement())).getScope());
+			}
+			
+		}
+		
+		
 		//System.out.println(identifier.getPosition());
 		
 		if(exp != null){
@@ -297,7 +347,7 @@ public class Encoder implements Visitor{
 			this.buffer.append("\n\tpop dword [ebp+" + (assign.getIdentifier().getPosition() *4 +4) + "]");
 		}
 		else{
-			this.buffer.append("\n\tpop dword [ebp-" + (assign.getIdentifier().getPosition() *4) + "]");
+			this.buffer.append("\n"+tab+"pop dword [ebp-" + (assign.getIdentifier().getPosition() *4) + "]");
 		}
 		
 		return null;
@@ -349,94 +399,91 @@ public class Encoder implements Visitor{
 
 	@Override
 	public Object visitIfCommand(IfCommand ifCmd, Object arg) throws SemanticException {
+		
 		Expression exp = ifCmd.getExpression();
 		Operator op = exp.getOperator();
 		ElseCommand elseCmd = ifCmd.getElse();
-		exp.visit(this,arg);
+		String nomeFuncao = null;
+		exp.visit(this,ifCmd);
 		
 		ArrayList<Command> commands = ifCmd.getCommand();
+		String tab = this.getIdentation(ifCmd.getScope());
+		String jump = "\n"+ tab +"j";
 		
-		String jump = "\nj";
+		
 		if(arg instanceof FunctionDefinition){
-			//this.buffer.append("\n\tcmp eax, ebx");
-			if(op != null){
-				if(op.value.equals("==")){
-					jump += "ne ";
-				}
-				else if(op.value.equals("!=")){
-					jump += "e ";
-				}
-				else if(op.value.equals(">")){
-					jump += "le ";
-				}
-				else if(op.value.equals("<")){
-					jump += "ge ";
-				}
-				else if(op.value.equals(">=")){
-					jump += "l ";
-				}
-				else if(op.value.equals("=<")){
-					jump += "g ";
-				}
+			this.scopes.add(arg);
+			nomeFuncao = ((FunctionDefinition)arg).getIdentifier().getValue();
+			
+		}
+		else if(arg instanceof ProcedureDefinition){
+			this.scopes.add(arg);
+			nomeFuncao = ((ProcedureDefinition)arg).getIdentifier().getValue();
+		}
+		
+		else if(arg instanceof Vector){
+			if(((Vector)arg).firstElement() instanceof FunctionDefinition){
+				
+				nomeFuncao = ((FunctionDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+				
+			}
+			else if(((Vector)arg).firstElement() instanceof ProcedureDefinition){
+				nomeFuncao = ((ProcedureDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+			}
+			
+		}
+		
+		if(op != null){
+			if(op.value.equals("==")){
+				jump += "ne ";
+			}
+			else if(op.value.equals("!=")){
+				jump += "e ";
+			}
+			else if(op.value.equals(">")){
+				jump += "le ";
+			}
+			else if(op.value.equals("<")){
+				jump += "ge ";
+			}
+			else if(op.value.equals(">=")){
+				jump += "l ";
+			}
+			else if(op.value.equals("=<")){
+				jump += "g ";
 			}
 			if(elseCmd != null){
-				this.buffer.append("\n\t" + jump + "_" + ((FunctionDefinition)arg).getIdentifier().getValue() + "_Else_Block \n");
+				
+				this.buffer.append("\n\t" + jump + "_" + nomeFuncao + "_Else_" + elseCmd.getScope() + "_Block \n");
 			}
 			else{
-				this.buffer.append("\n\tjmp _" + ((FunctionDefinition)arg).getIdentifier().getValue() + "_End_If \n");
+				this.buffer.append("\n\t" + jump + "_" + nomeFuncao + "_End_If_" + ifCmd.getScope() + " \n");
+			}
+			if(commands != null){
+				this.scopes.add(ifCmd);
+				
+				for(Command cmd : commands){
+					if(cmd instanceof PrintCommand){
+						((PrintCommand)cmd).visit(this, this.scopes);
+					}
+					else if(cmd instanceof IfCommand){
+						((IfCommand)cmd).visit(this, this.scopes);
+					}
+					else if(cmd instanceof WhileCommand){
+						((WhileCommand)cmd).visit(this, this.scopes);
+					}
+					else if(cmd instanceof AssignmentCommand){
+						((AssignmentCommand)cmd).visit(this, this.scopes);
+					}
+				}
+				this.scopes.remove(this.scopes.indexOf(this.scopes.lastElement()));
+			}
+			if(elseCmd != null){
 				elseCmd.visit(this, arg);
 			}
 			
-			if(commands != null){
-				for(Command com : commands){
-					if(com instanceof PrintCommand){
-						((PrintCommand)com).visit(this, ifCmd);
-					}
-				}
-			}
-		}
-		else if(arg instanceof ProcedureDefinition){
-			if(op != null){
-				if(op.value.equals("==")){
-					jump += "ne ";
-				}
-				else if(op.value.equals("!=")){
-					jump += "e ";
-				}
-				else if(op.value.equals(">")){
-					jump += "le ";
-				}
-				else if(op.value.equals("<")){
-					jump += "ge ";
-				}
-				else if(op.value.equals(">=")){
-					jump += "l ";
-				}
-				else if(op.value.equals("=<")){
-					jump += "g ";
-				}
-				if(elseCmd != null){
-					
-					this.buffer.append("\n\t" + jump + "_" + ((ProcedureDefinition)arg).getIdentifier().getValue() + "_Else_Block \n");
-				}
-				else{
-					this.buffer.append("\n\t" + jump + "_" + ((ProcedureDefinition)arg).getIdentifier().getValue() + "_End_If \n");
-				}
-				if(commands != null){
-					
-					for(Command cmd : commands){
-						if(cmd instanceof PrintCommand){
-							((PrintCommand)cmd).visit(this, ifCmd);
-						}
-					}
-					//this.buffer.append()
-				}
-				if(elseCmd != null){
-					elseCmd.visit(this, arg);
-				}
-				
-				this.buffer.append("\n\t_" + ((ProcedureDefinition)arg).getIdentifier().getValue() + "_End_If: \n");
-			}
+			this.buffer.append("\n\t_" + nomeFuncao + "_End_If_" + (ifCmd.getScope()) + ": \n");
+			//this.scopes.remove(this.scopes.indexOf(this.scopes.lastElement()));
 		}
 		
 		
@@ -445,19 +492,53 @@ public class Encoder implements Visitor{
 
 	@Override
 	public Object visitElseCommand(ElseCommand elseCmd, Object arg) throws SemanticException {
-		// TODO Auto-generated method stub
 		
+		String nomeFuncao = null ; 
 		ArrayList<Command> commands = elseCmd.getCommand();
 		if(arg instanceof ProcedureDefinition){
-		
-			this.buffer.append("\n\t_" + ((ProcedureDefinition)arg).getIdentifier().getValue() + "_Else_Block: \n");
+			nomeFuncao = ((ProcedureDefinition)arg).getIdentifier().getValue(); 
+			this.scopes.add(arg);
 			
 			
 		}
 		else if(arg instanceof FunctionDefinition){
+			this.scopes.add(arg);
+			nomeFuncao = ((FunctionDefinition)arg).getIdentifier().getValue();
+			//this.buffer.append("\n\t_" + ((FunctionDefinition)arg).getIdentifier().getValue() + "_Else_"+ elseCmd.getScope() +"_Block: \n");
+		}
+		else if(arg instanceof Vector){
+			if(((Vector)arg).firstElement() instanceof FunctionDefinition){
+				
+				nomeFuncao = ((FunctionDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+				
+			}
+			else if(((Vector)arg).firstElement() instanceof ProcedureDefinition){
+				nomeFuncao = ((ProcedureDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+			}
 			
 		}
 		
+		this.buffer.append("\n\t_" + nomeFuncao + "_Else_"+ elseCmd.getScope() +"_Block: \n");
+		
+		if(commands != null){
+			this.scopes.add(elseCmd);
+			for(Command cmd : commands){
+				if(cmd instanceof PrintCommand){
+					((PrintCommand)cmd).visit(this, this.scopes);
+				}
+				else if(cmd instanceof AssignmentCommand){
+					((AssignmentCommand)cmd).visit(this, this.scopes);
+				}
+				else if(cmd instanceof IfCommand){
+					((IfCommand)cmd).visit(this, this.scopes);
+				}
+			}
+			
+		}
+		
+		this.buffer.append("\n\t_" + nomeFuncao + "_End_Else_"+ elseCmd.getScope() +"_Block: \n");
+		this.scopes.remove(this.scopes.indexOf(this.scopes.lastElement()));
+		// this.buffer.append("\n\")
 		return null;
 	}
 
@@ -490,13 +571,30 @@ public class Encoder implements Visitor{
 		ExpressionArithmetic left = expression.getLeft();
 		ExpressionArithmetic right = expression.getRight();
 		Operator op = expression.getOperator();
+		String tab = "";
+		
+		if(arg instanceof IfCommand){
+			tab = this.getIdentation( ((IfCommand)arg).getScope() );
+		}
+		else if(arg instanceof ElseCommand){
+			tab = this.getIdentation( ((ElseCommand)arg).getScope() );
+		}
+		else if(arg instanceof ProcedureDefinition || arg instanceof FunctionDefinition){
+			tab = this.getIdentation(1);
+		}
+		else if(arg instanceof WhileCommand){
+			tab = this.getIdentation( ((WhileCommand)arg).getScope() );
+		}
+		else if(arg instanceof AssignmentCommand){
+			tab = this.getIdentation( ((WhileCommand)arg).getScope() );
+		}
 		
 		if(left != null && right != null){
 			left.visit(this, arg);
 			right.visit(this, arg);
-			this.buffer.append("\n\tpop ebx");
-			this.buffer.append("\n\tpop eax");
-			this.buffer.append("\n\tcmp eax,ebx");
+			this.buffer.append("\n"+tab+"pop ebx");
+			this.buffer.append("\n"+tab+"pop eax");
+			this.buffer.append("\n"+tab+"cmp eax,ebx");
 		}
 		
 		else if(left != null){
@@ -515,10 +613,24 @@ public class Encoder implements Visitor{
 		Object valorLeft = null;
 		String lastOp = null;
 		
+		String tab = "";
+		
+		if(arg instanceof IfCommand){
+			tab = this.getIdentation( ((IfCommand)arg).getScope() );
+		}
+		else if(arg instanceof ElseCommand){
+			tab = this.getIdentation( ((ElseCommand)arg).getScope() );
+		}
+		else if(arg instanceof ProcedureDefinition || arg instanceof FunctionDefinition){
+			tab = this.getIdentation(1);
+		}
+		else if(arg instanceof WhileCommand){
+			tab = this.getIdentation( ((WhileCommand)arg).getScope() );
+		}
 		if(left != null){
 			valorLeft = left.visit(this, arg);
 			if(((String)valorLeft) != null)
-				this.buffer.append("\n\tpush dword " + ((String)valorLeft));
+				this.buffer.append("\n"+tab+"push dword " + ((String)valorLeft));
 		}
 		
 		if(right.isEmpty() == false){
@@ -531,7 +643,7 @@ public class Encoder implements Visitor{
 				Operator opTemp = operadores.get(0);
 				lastOp = (String) (opTemp.visit(this,arg));
 				if(valorRight != null)
-					this.buffer.append("\n\tpush dword " + ( (String) valorRight));
+					this.buffer.append("\n"+tab+"push dword " + ( (String) valorRight));
 			}
 			else{
 				int numFactor = 0; 
@@ -544,25 +656,25 @@ public class Encoder implements Visitor{
 					if(j+1 < right.size()){
 						Object valorNext = right.get(j+1).visit(this, arg);
 						if(valorRight != null)
-							this.buffer.append("\n\tpush dword " + ((String)valorRight));
+							this.buffer.append("\n"+tab+"push dword " + ((String)valorRight));
 						if(valorNext != null)
-							this.buffer.append("\n\tpush dword " + ((String)valorNext));
+							this.buffer.append("\n"+tab+"push dword " + ((String)valorNext));
 						Operator opTemp = operadores.get(numOp);
 						lastOp = (String)(opTemp.visit(this, arg));
-						this.buffer.append("\n\tpop ebx");
-						this.buffer.append("\n\tpop eax");
-						this.buffer.append("\n\t" +lastOp +" eax, ebx");
-						this.buffer.append("\n\tpush dword eax");
+						this.buffer.append("\n"+tab+"pop ebx");
+						this.buffer.append("\n"+tab+"pop eax");
+						this.buffer.append("\n"+tab+"" +lastOp +" eax, ebx");
+						this.buffer.append("\n"+tab+"push dword eax");
 						numOp++;
 						numFactor += 2;
 					}else{
 						Object valorNext = right.get(j).visit(this, arg);
 						lastOp = (String) operadores.get(j).visit(this, arg);
-						this.buffer.append("\n\tpush dword " + ((String)valorNext));
-						this.buffer.append("\n\tpop ebx");
-						this.buffer.append("\n\tpop eax");
-						this.buffer.append("\n\t" +lastOp +" eax, ebx");
-						this.buffer.append("\n\tpush dword eax");
+						this.buffer.append("\n"+tab+"push dword " + ((String)valorNext));
+						this.buffer.append("\n"+tab+"pop ebx");
+						this.buffer.append("\n"+tab+"tpop eax");
+						this.buffer.append("\n"+tab+"" +lastOp +" eax, ebx");
+						this.buffer.append("\n"+tab+"push dword eax");
 					}
 					/*
 					if(operators != null && operators.size() >= numOp){
@@ -576,10 +688,10 @@ public class Encoder implements Visitor{
 				lastOp = (String)operadores.get(0).visit(this, arg);
 			}
 			
-			this.buffer.append("\n\tpop ebx ");
-			this.buffer.append("\n\tpop eax ");
-			this.buffer.append("\n\t" + lastOp + " eax, ebx");
-			this.buffer.append("\n\tpush dword eax");
+			this.buffer.append("\n"+tab+"pop ebx ");
+			this.buffer.append("\n"+tab+"pop eax ");
+			this.buffer.append("\n"+tab+"" + lastOp + " eax, ebx");
+			this.buffer.append("\n"+tab+"push dword eax");
 			
 		}
 		else{
@@ -596,16 +708,32 @@ public class Encoder implements Visitor{
 
 	@Override
 	public Object visitExpressionMultiplication(ExpressionMultiplication expMul, Object arg) throws SemanticException {
-		
+		//"+tab+"
 		Factor left = expMul.getFactorLeft();
 		ArrayList<Factor> others = expMul.getFactorOthers();
 		ArrayList<Operator> operators = expMul.getOperadores();
 		String lastOp = null;
 		Object valorLeft = null;
+		String tab = "";
+		
+		if(arg instanceof IfCommand){
+			tab = this.getIdentation( ((IfCommand)arg).getScope() );
+		}
+		else if(arg instanceof ElseCommand){
+			tab = this.getIdentation( ((ElseCommand)arg).getScope() );
+		}
+		else if(arg instanceof ProcedureDefinition || arg instanceof FunctionDefinition){
+			tab = this.getIdentation(1);
+		}
+		else if(arg instanceof WhileCommand){
+			tab = this.getIdentation( ((WhileCommand)arg).getScope() );
+		}
+		
+		
 		if(left != null){
 			valorLeft = left.visit(this, arg);
 			if(((String)valorLeft) != null)
-				this.buffer.append("\n\tpush dword " + ((String)valorLeft));
+				this.buffer.append("\n"+tab+"push dword " + ((String)valorLeft));
 		}
 		
 		if(others.isEmpty() == false){
@@ -619,7 +747,7 @@ public class Encoder implements Visitor{
 				Object valorRight = temp.visit(this, arg);
 				Operator opTemp = operators.get(0);
 				lastOp = (String) (opTemp.visit(this,arg));
-				this.buffer.append("\n\tpush dword " + ( (String) valorRight));
+				this.buffer.append("\n"+tab+"push dword " + ( (String) valorRight));
 			}
 			else{
 				int numFactor = 0;
@@ -631,24 +759,24 @@ public class Encoder implements Visitor{
 					if(j+1 < others.size()){
 						//Object valorNext = others.get(numFactor+1).visit(this, arg);
 						Object valorNext = others.get(j+1).visit(this, arg);
-						this.buffer.append("\n\tpush dword " + ((String)valorRight));
-						this.buffer.append("\n\tpush dword " + ((String)valorNext));
+						this.buffer.append("\n"+tab+"push dword " + ((String)valorRight));
+						this.buffer.append("\n"+tab+"push dword " + ((String)valorNext));
 						Operator opTemp = operators.get(numOp);
 						lastOp = (String)(opTemp.visit(this, arg));
-						this.buffer.append("\n\tpop ebx");
-						this.buffer.append("\n\tpop eax");
-						this.buffer.append("\n\t" +lastOp +" eax, ebx");
+						this.buffer.append("\n"+tab+"pop ebx");
+						this.buffer.append("\n"+tab+"pop eax");
+						this.buffer.append("\n"+tab+"" +lastOp +" eax, ebx");
 						this.buffer.append("\n\tpush dword eax");
 						numOp += 2;
 						numFactor += 2;
 					}else{
 						Object valorNext = others.get(j).visit(this, arg);
 						lastOp = (String) operators.get(j).visit(this, arg);
-						this.buffer.append("\n\tpush dword " + ((String)valorNext));
-						this.buffer.append("\n\tpop ebx");
-						this.buffer.append("\n\tpop eax");
-						this.buffer.append("\n\t" +lastOp +" eax, ebx");
-						this.buffer.append("\n\tpush dword eax");
+						this.buffer.append("\n"+tab+"push dword " + ((String)valorNext));
+						this.buffer.append("\n"+tab+"pop ebx");
+						this.buffer.append("\n"+tab+"pop eax");
+						this.buffer.append("\n"+tab+"" +lastOp +" eax, ebx");
+						this.buffer.append("\n"+tab+"push dword eax");
 					}
 					
 					/*
@@ -663,10 +791,10 @@ public class Encoder implements Visitor{
 				lastOp = (String)operators.get(0).visit(this, arg);
 			}
 			
-			this.buffer.append("\n\tpop ebx ");
-			this.buffer.append("\n\tpop eax ");
-			this.buffer.append("\n\t" + lastOp + " eax, ebx");
-			this.buffer.append("\n\tpush dword eax");
+			this.buffer.append("\n"+tab+"pop ebx ");
+			this.buffer.append("\n"+tab+"pop eax ");
+			this.buffer.append("\n"+tab+"" + lastOp + " eax, ebx");
+			this.buffer.append("\n"+tab+"push dword eax");
 			
 		}
 		else{
@@ -693,16 +821,32 @@ public class Encoder implements Visitor{
 	}
 
 	@Override
-	public Object visitIdentifier(Identifier identifier, Object obj) throws SemanticException {
+	public Object visitIdentifier(Identifier identifier, Object arg) throws SemanticException {
+		
+		String tab = "";
+		
+		if(arg instanceof IfCommand){
+			tab = this.getIdentation( ((IfCommand)arg).getScope() );
+		}
+		else if(arg instanceof ElseCommand){
+			tab = this.getIdentation( ((ElseCommand)arg).getScope() );
+		}
+		else if(arg instanceof ProcedureDefinition || arg instanceof FunctionDefinition){
+			tab = this.getIdentation(1);
+		}
+		else if(arg instanceof WhileCommand){
+			tab = this.getIdentation( ((WhileCommand)arg).getScope() );
+		}
+		
 		if(identifier.getTipo().equals("INT")){
 			if(identifier.getParameter()){
-				this.buffer.append("\n\tpush dword [ebp+" + (identifier.getPosition()*4 +4) + "]");
+				this.buffer.append("\n"+tab+"push dword [ebp+" + (identifier.getPosition()*4 +4) + "]");
 			}
 			else if(identifier.getGlobal() == false && identifier.getParameter() == false){
-				this.buffer.append("\n\tpush dword [ebp-" + (identifier.getPosition() * 4) + "]");
+				this.buffer.append("\n"+tab+"push dword [ebp-" + (identifier.getPosition() * 4) + "]");
 			}
 			else if(identifier.getGlobal()){
-				this.buffer.append("\n\tpush dword [ebp+");
+				this.buffer.append("\n"+tab+"push dword [ebp+");
 			}
 		}
 		return null;

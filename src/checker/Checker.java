@@ -596,7 +596,7 @@ public final class Checker implements Visitor {
 	}
 
 	public Object visitIfCommand(IfCommand ifCmd, Object arg) 	throws SemanticException {
-		this.identificationTable.openScope();
+		//this.identificationTable.openScope();
 		Object exp = ifCmd.getExpression();
 		Expression e;
 		ElseCommand elseCommand = ifCmd.getElse();
@@ -614,8 +614,8 @@ public final class Checker implements Visitor {
 		
 		Object commands = ifCmd.getCommand();
 		int currentScope = this.identificationTable.getCurrentScope();
+		this.identificationTable.openScope();
 		if(commands != null){
-			this.identificationTable.openScope();
 			for(Command c : ifCmd.getCommand()){
 				if(c instanceof IfCommand){
 					cmd.add( (Command) ((IfCommand)c).visit(this, arg));
@@ -650,9 +650,11 @@ public final class Checker implements Visitor {
 			
 			this.identificationTable.closeScope();
 			
-			if(elseCommand != null){
-				elseCommand = (ElseCommand) elseCommand.visit(this, ifCmd);
 			}
+		if(elseCommand != null){
+			elseCommand = (ElseCommand) elseCommand.visit(this, ifCmd);
+			elseCommand.setScope(currentScope);
+		
 		}
 		
 		ic = new IfCommand(e, cmd, elseCommand);
@@ -665,9 +667,10 @@ public final class Checker implements Visitor {
 		if(arg instanceof IfCommand){
 			ArrayList<Command> command = elseCmd.getCommand();
 			ArrayList<Command> cmd = new ArrayList<Command>();
-			int currentScope = this.identificationTable.getCurrentScope();
+			
+			int currentScope = ((IfCommand)arg).getScope();
+			this.identificationTable.openScope();
 			if(command != null){
-				this.identificationTable.openScope();
 				for(Command c : command){
 					if(c instanceof IfCommand){
 						cmd.add( (Command) ((IfCommand)c).visit(this, arg));
@@ -699,15 +702,15 @@ public final class Checker implements Visitor {
 					}
 				}
 				this.identificationTable.closeScope();
-				ElseCommand ecmd = new ElseCommand(cmd);
-				ecmd.setScope(currentScope);
-				return ecmd;
 			}
+			ElseCommand ecmd = new ElseCommand(cmd);
+			ecmd.setScope(currentScope);
+			return ecmd;
 		}
 		else{
 			throw new SemanticException("visitElseCommand => You MUST declare an IF Statement before using an ELSE Statement");
 		}
-		return null;
+		
 	}
 
 	public Object visitParametersCallCommand(ParametersCallCommand params,	Object arg) throws SemanticException {
@@ -755,6 +758,7 @@ public final class Checker implements Visitor {
 		WhileCommand wcmd;
 		ArrayList<Command> command = new ArrayList<Command>();
 		Object temp = exp.visit(this, arg);
+		int scope = whileCmd.getScope();
 		if(temp instanceof Expression){
 			exp = ((Expression)temp);
 		}
@@ -772,13 +776,31 @@ public final class Checker implements Visitor {
 				}
 				else if(c instanceof ResultIsCommand){
 					command.add((Command) ((ResultIsCommand)c).visit(this, arg));
+					break;
+				}
+				else if(c instanceof AssignmentCommand){
+					command.add((Command) ((AssignmentCommand)c).visit(this, arg));
+				}
+				else if(c instanceof IfCommand){
+					command.add((Command) ((IfCommand)c).visit(this, arg));
+				}
+				else if(c instanceof PrintCommand){
+					command.add((Command) ((PrintCommand)c).visit(this, arg));
+				}
+				else if(c instanceof CallCommand){
+					command.add((Command) ((CallCommand)c).visit(this, arg));
+				}
+				else if(c instanceof WhileCommand){
+					command.add((Command) ((WhileCommand)c).visit(this, whileCmd));
 				}
 			}
 			this.identificationTable.closeScope();
 		}
 		
+		wcmd = new WhileCommand(exp, command);
+		wcmd.setScope(scope);
 		
-		return null;
+		return wcmd;
 	}
 
 	public Object visitExpression(Expression expression, Object arg) throws SemanticException {
@@ -892,6 +914,8 @@ public final class Checker implements Visitor {
 		Factor esquerdo = null;
 		Object temp = expMul.getFactorLeft();
 		Object f1;
+		Object right = expMul.getFactorOthers();
+		ArrayList<Operator> operadores = expMul.getOperadores();
 		int operadorIndex = 0;
 		if(temp != null){
 			 f1 = ((Factor)temp).visit(this, arg);
@@ -916,8 +940,7 @@ public final class Checker implements Visitor {
 		}
 			
 		
-		Object right = expMul.getFactorOthers();
-		ArrayList<Operator> operadores = expMul.getOperadores();
+		
 		
 		if(right != null){
 			for(Factor f : expMul.getFactorOthers()){

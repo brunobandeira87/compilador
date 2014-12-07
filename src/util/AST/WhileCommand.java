@@ -11,6 +11,7 @@ public class WhileCommand extends Command {
 	private ArrayList<Operator> terminal;
 	private Expression expression;
 	private ArrayList<Command> command;
+	private int scope;
 	
 
 	private void setTerminal(){
@@ -39,6 +40,14 @@ public class WhileCommand extends Command {
 	
 	public ArrayList<Command> getCommand(){
 		return this.command;
+	}
+	
+	public int getScope(){
+		return this.scope;
+	}
+	
+	public void setScope(int scope){
+		this.scope = scope;
 	}
 	
 	@Override
