@@ -202,6 +202,14 @@ public class Encoder implements Visitor{
 				else if(cmd instanceof IfCommand){
 					((IfCommand)cmd).visit(this, funcDef);
 				}
+				else if(cmd instanceof WhileCommand){
+					((WhileCommand)cmd).visit(this, funcDef);
+				}
+				
+				else if(cmd instanceof CallCommand){
+					((CallCommand)cmd).visit(this, funcDef);
+				}
+				
 			}
 			
 		}
@@ -265,6 +273,12 @@ public class Encoder implements Visitor{
 				}
 				else if(com instanceof IfCommand){
 					((IfCommand)com).visit(this, procDef);
+				}
+				else if(com instanceof WhileCommand){
+					((WhileCommand)com).visit(this, procDef);
+				}
+				else if(com instanceof CallCommand){
+					((CallCommand)com).visit(this, procDef);
 				}
 			}
 		}
@@ -331,7 +345,9 @@ public class Encoder implements Visitor{
 			else if(((Vector)arg).lastElement() instanceof IfCommand){
 				tab = this.getIdentation(((IfCommand)(((Vector)arg).lastElement())).getScope());
 			}
-			
+			else if(((Vector)arg).lastElement() instanceof WhileCommand){
+				tab = this.getIdentation(((WhileCommand)(((Vector)arg).lastElement())).getScope());
+			}
 		}
 		
 		
@@ -355,19 +371,113 @@ public class Encoder implements Visitor{
 
 	@Override
 	public Object visitCallCommand(CallCommand callCmd, Object arg)	 throws SemanticException {
-		// TODO Auto-generated method stub
+		
+		ParametersCallCommand params = callCmd.getParams();
+		String tab = "";
+		String nomeFuncao = "";
+		if(params != null){
+			params.visit(this, arg);
+		}
+		
+		if(arg instanceof ProcedureDefinition){
+			tab = this.getIdentation(1);
+			nomeFuncao = ((ProcedureDefinition)arg).getIdentifier().getValue();
+		}
+		
+		else if(arg instanceof FunctionDefinition){
+			tab = this.getIdentation(1);
+			nomeFuncao = ((FunctionDefinition)arg).getIdentifier().getValue();
+		}
+		
+		else if(arg instanceof Vector){
+			if(((Vector)arg).firstElement() instanceof FunctionDefinition){
+				
+				nomeFuncao = ((FunctionDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+				
+			}
+			else if(((Vector)arg).firstElement() instanceof ProcedureDefinition){
+				nomeFuncao = ((ProcedureDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+			}
+			
+			
+			if(((Vector)arg).lastElement() instanceof ElseCommand){
+				tab = this.getIdentation(((ElseCommand)(((Vector)arg).lastElement())).getScope());
+			}
+			else if(((Vector)arg).lastElement() instanceof WhileCommand){
+				tab = this.getIdentation(((WhileCommand)(((Vector)arg).lastElement())).getScope());
+			}
+			else if(((Vector)arg).lastElement() instanceof IfCommand){
+				tab = this.getIdentation(((IfCommand)(((Vector)arg).lastElement())).getScope());
+			}
+			else if(((Vector)arg).lastElement() instanceof WhileCommand){
+				tab = this.getIdentation(((WhileCommand)(((Vector)arg).lastElement())).getScope());
+			}
+			
+		}
+		
+		this.buffer.append("\n" + tab + "call _" + nomeFuncao);
+		if(params != null){
+			if(params.getParams().isEmpty() == false){
+				int numberParams = params.getParams().size();
+				this.buffer.append("\n" + tab + "add esp, " + numberParams * 4 + "\n");
+			}
+		}
+		
 		return null;
 	}
 
 	@Override
 	public Object visitContinueCommand(ContinueCommand continueCmd, Object arg) throws SemanticException {
-		// TODO Auto-generated method stub
+
+		
+		String tab ="";
+		String nomeFuncao = "";
+		
+		 if(arg instanceof Vector){
+			if(((Vector)arg).lastElement() instanceof WhileCommand){
+				tab = this.getIdentation(((WhileCommand)(((Vector)arg).lastElement())).getScope());
+				
+				if(((Vector)arg).firstElement() instanceof FunctionDefinition){
+					
+					nomeFuncao = ((FunctionDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+					
+				}
+				else if(((Vector)arg).firstElement() instanceof ProcedureDefinition){
+					nomeFuncao = ((ProcedureDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+				}
+			}
+			
+		}
+		this.buffer.append("\n" + tab + "jmp _" + nomeFuncao + "_" + ((WhileCommand)(((Vector)arg).lastElement())).getScope() + "_Block");
+		
+		
 		return null;
 	}
 
 	@Override
 	public Object visitBreakCommand(BreakCommand breakCmd, Object arg) throws SemanticException {
-		// TODO Auto-generated method stub
+
+		
+		String tab ="";
+		String nomeFuncao = "";
+		
+		 if(arg instanceof Vector){
+			if(((Vector)arg).lastElement() instanceof WhileCommand){
+				tab = this.getIdentation(((WhileCommand)(((Vector)arg).lastElement())).getScope());
+				
+				if(((Vector)arg).firstElement() instanceof FunctionDefinition){
+					
+					nomeFuncao = ((FunctionDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+					
+				}
+				else if(((Vector)arg).firstElement() instanceof ProcedureDefinition){
+					nomeFuncao = ((ProcedureDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+				}
+			}
+			
+		}
+		this.buffer.append("\n" + tab + "jmp _" + nomeFuncao + "_End_" + ((WhileCommand)(((Vector)arg).lastElement())).getScope() + "_Block");
+		
 		return null;
 	}
 
@@ -475,6 +585,9 @@ public class Encoder implements Visitor{
 					else if(cmd instanceof AssignmentCommand){
 						((AssignmentCommand)cmd).visit(this, this.scopes);
 					}
+					else if(cmd instanceof CallCommand){
+						((CallCommand)cmd).visit(this, this.scopes);
+					}
 				}
 				this.scopes.remove(this.scopes.indexOf(this.scopes.lastElement()));
 			}
@@ -532,6 +645,12 @@ public class Encoder implements Visitor{
 				else if(cmd instanceof IfCommand){
 					((IfCommand)cmd).visit(this, this.scopes);
 				}
+				else if(cmd instanceof WhileCommand){
+					((WhileCommand)cmd).visit(this, this.scopes);
+				}
+				else if(cmd instanceof CallCommand){
+					((CallCommand)cmd).visit(this, this.scopes);
+				}
 			}
 			
 		}
@@ -544,7 +663,17 @@ public class Encoder implements Visitor{
 
 	@Override
 	public Object visitParametersCallCommand(ParametersCallCommand params,	Object arg) throws SemanticException {
-		// TODO Auto-generated method stub
+		
+		
+		ArrayList<Factor> identifierList = params.getParams();
+		
+		if(identifierList != null ){
+			for(Factor f : identifierList){
+				f.visit(this, arg);
+			}
+		}
+		
+		
 		return null;
 	}
 
@@ -561,7 +690,87 @@ public class Encoder implements Visitor{
 
 	@Override
 	public Object visitWhileCommand(WhileCommand whileCmd, Object arg)	throws SemanticException {
-		// TODO Auto-generated method stub
+		
+		Expression exp = whileCmd.getExpression();
+		String tab = this.getIdentation(whileCmd.getScope());
+		String jump = "\n"+ tab +"j";
+		ArrayList<Command> commands = whileCmd.getCommand();
+		Operator op = whileCmd.getExpression().getOperator();
+		String nomeFuncao = null;
+		
+		if(arg instanceof ProcedureDefinition){
+			nomeFuncao = ((ProcedureDefinition)arg).getIdentifier().getValue(); 
+			this.scopes.add(arg);
+		}
+		else if(arg instanceof FunctionDefinition){
+			nomeFuncao = ((FunctionDefinition)arg).getIdentifier().getValue(); 
+			this.scopes.add(arg);
+					
+		}
+		else if(arg instanceof Vector){
+			if(((Vector)arg).firstElement() instanceof FunctionDefinition){
+				
+				nomeFuncao = ((FunctionDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+				
+			}
+			else if(((Vector)arg).firstElement() instanceof ProcedureDefinition){
+				nomeFuncao = ((ProcedureDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+			}
+		}
+		this.buffer.append("\n" + tab + "_" + nomeFuncao + "_While_" + whileCmd.getScope() + "_Block:\n");
+		exp.visit(this, arg);
+		//this.buffer.append("\n" + tab + "");
+		
+		if(op != null){
+			if(op.value.equals("==")){
+				jump += "ne ";
+			}
+			else if(op.value.equals("!=")){
+				jump += "e "; 
+			}
+			else if(op.value.equals(">")){
+				jump += "le ";
+			}
+			else if(op.value.equals("<")){
+				jump += "ge ";
+			}
+			else if(op.value.equals(">=")){
+				jump += "l ";
+			}
+			else if(op.value.equals("<=")){
+				jump += "g ";
+			}
+			this.buffer.append("\n\t" + jump + "_" + nomeFuncao + "_End_While_" + whileCmd.getScope() + " \n");
+		}
+		
+		if(commands != null){
+			this.scopes.add(whileCmd);
+			
+			for(Command cmd : commands){
+				if(cmd instanceof PrintCommand){
+					((PrintCommand)cmd).visit(this, this.scopes);
+				}
+				else if(cmd instanceof IfCommand){
+					((IfCommand)cmd).visit(this, this.scopes);
+				}
+				else if(cmd instanceof WhileCommand){
+					((WhileCommand)cmd).visit(this, this.scopes);
+				}
+				else if(cmd instanceof AssignmentCommand){
+					((AssignmentCommand)cmd).visit(this, this.scopes);
+				}
+				else if(cmd instanceof CallCommand){
+					((CallCommand)cmd).visit(this, this.scopes);
+				}
+				
+			}
+			this.scopes.remove(this.scopes.indexOf(this.scopes.lastElement()));
+		}
+		
+		this.buffer.append("\n" + tab + "jmp _" + nomeFuncao + "_While_" + whileCmd.getScope() + "_Block\n");
+		
+		this.buffer.append("\n" + tab +"_" + nomeFuncao + "_End_While_" + (whileCmd.getScope()) + ": \n");
+		
 		return null;
 	}
 
@@ -587,6 +796,21 @@ public class Encoder implements Visitor{
 		}
 		else if(arg instanceof AssignmentCommand){
 			tab = this.getIdentation( ((WhileCommand)arg).getScope() );
+		}
+		
+		else if(arg instanceof Vector){
+			
+			if(((Vector)arg).lastElement() instanceof WhileCommand){
+				tab = this.getIdentation(((WhileCommand)(((Vector)arg).lastElement())).getScope()+1);
+			}
+			
+			else if(((Vector)arg).lastElement() instanceof IfCommand){
+				tab = this.getIdentation(((IfCommand)(((Vector)arg).lastElement())).getScope()+1);
+			}
+			else if(((Vector)arg).lastElement() instanceof ElseCommand){
+				tab = this.getIdentation(((ElseCommand)(((Vector)arg).lastElement())).getScope()+1);
+			}
+			
 		}
 		
 		if(left != null && right != null){
@@ -627,6 +851,22 @@ public class Encoder implements Visitor{
 		else if(arg instanceof WhileCommand){
 			tab = this.getIdentation( ((WhileCommand)arg).getScope() );
 		}
+		
+		else if(arg instanceof Vector){
+			
+			if(((Vector)arg).lastElement() instanceof WhileCommand){
+				tab = this.getIdentation(((WhileCommand)(((Vector)arg).lastElement())).getScope()+1);
+			}
+			
+			else if(((Vector)arg).lastElement() instanceof IfCommand){
+				tab = this.getIdentation(((IfCommand)(((Vector)arg).lastElement())).getScope()+1);
+			}
+			else if(((Vector)arg).lastElement() instanceof ElseCommand){
+				tab = this.getIdentation(((ElseCommand)(((Vector)arg).lastElement())).getScope()+1);
+			}
+			
+		}
+		
 		if(left != null){
 			valorLeft = left.visit(this, arg);
 			if(((String)valorLeft) != null)
@@ -728,7 +968,20 @@ public class Encoder implements Visitor{
 		else if(arg instanceof WhileCommand){
 			tab = this.getIdentation( ((WhileCommand)arg).getScope() );
 		}
-		
+		else if(arg instanceof Vector){
+			
+			if(((Vector)arg).lastElement() instanceof WhileCommand){
+				tab = this.getIdentation(((WhileCommand)(((Vector)arg).lastElement())).getScope()+1);
+			}
+			
+			else if(((Vector)arg).lastElement() instanceof IfCommand){
+				tab = this.getIdentation(((IfCommand)(((Vector)arg).lastElement())).getScope()+1);
+			}
+			else if(((Vector)arg).lastElement() instanceof ElseCommand){
+				tab = this.getIdentation(((ElseCommand)(((Vector)arg).lastElement())).getScope()+1);
+			}
+			
+		}
 		
 		if(left != null){
 			valorLeft = left.visit(this, arg);
@@ -812,9 +1065,9 @@ public class Encoder implements Visitor{
 		}
 		else if(factor instanceof Bool){
 			return ((Bool)factor).visit(this, arg);
-					
-					
-					
+		}
+		else if(factor instanceof Identifier){
+			return ((Identifier)factor).visit(this, arg);
 		}
 		
 		return null;

@@ -1,16 +1,14 @@
 LET VOID main() BE{
-
-	LET INT x = 5;
-	IF(5 > 2){
-		IF(3+2 > 5){
-			WRITEF(x);
-		}
-		ELSE{
-			x = 4;
-		}
-		x = 23;	
-	}ELSE{
-		x = 45;
-	}
 	
+}
+AND VOID f1() BE{
+	
+}
+
+AND VOID f2() BE {
+	LET INT y = 2;
+	LET INT o = 3;
+	WHILE( o > y){
+		CALL f1();
+	}
 }

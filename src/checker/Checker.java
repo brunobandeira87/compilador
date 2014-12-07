@@ -758,7 +758,7 @@ public final class Checker implements Visitor {
 		WhileCommand wcmd;
 		ArrayList<Command> command = new ArrayList<Command>();
 		Object temp = exp.visit(this, arg);
-		int scope = whileCmd.getScope();
+		int scope = this.identificationTable.getCurrentScope();
 		if(temp instanceof Expression){
 			exp = ((Expression)temp);
 		}
