@@ -1,18 +1,17 @@
-GLOBAL LET BOOL y = 5==5;
+GLOBAL LET INT y = 203;
 
 LET VOID main() BE{
 
-	//LET BOOL y =  TRUE == TRUE;
-	//LET INT y =  (4 * 1 * 2 + 1) * 5 - TRUE;
+}
+AND VOID f1(INT a1, INT a2, INT a3, INT a4) BE{
+
+	
 	
 }
 
-AND BOOL f1(INT a, INT b, INT c) = VALOF{
+AND VOID f2(INT b1, INT b2, INT b3, INT b4) BE{
+
 	
-	RESULTIS y;
-}
-AND INT f2(INT z, BOOL h) = VALOF {
-	LET BOOL e = TRUE;
-	e = CALL f1(5,2*2,3+1);
-	RESULTIS 3 * 4 * 3;
+	b1 = 2;
+	
 }

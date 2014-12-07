@@ -20,6 +20,7 @@ public class VariableGlobalDefinition extends AST{
 		else{
 			this.tipo = "BOOL";
 		}
+		this.variableDefinition.global = true;
 	}
 	
 	public ReservedWord getReservedWord(){

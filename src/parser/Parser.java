@@ -300,7 +300,8 @@ public class Parser {
 			hasVar = true;
 		}
 		while(this.currentToken.getKind() == TokenKind.WHILE || this.currentToken.getKind() == TokenKind.IF || this.currentToken.getKind() == TokenKind.BREAK ||
-				this.currentToken.getKind() == TokenKind.WRITEF || this.currentToken.getKind() == TokenKind.CONTINUE || this.currentToken.getKind() == TokenKind.IDENTIFIER || this.currentToken.getKind() == TokenKind.RESULTIS){
+				this.currentToken.getKind() == TokenKind.WRITEF || this.currentToken.getKind() == TokenKind.CONTINUE || this.currentToken.getKind() == TokenKind.IDENTIFIER || this.currentToken.getKind() == TokenKind.RESULTIS
+				|| this.currentToken.getKind() == TokenKind.CALL){
 			hasCommand = true;
 			command.add(parseCommand());
 		}

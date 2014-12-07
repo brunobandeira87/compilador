@@ -18,11 +18,13 @@ public class Encoder implements Visitor{
 	private File file;
 	private Arquivo asm;
 	private StringBuffer buffer;
+	private int numberLocalVar;
 
 	public Encoder() {
 		this.file = new File("/home/bandeira/Desktop/teste.asm");
 		this.asm = new Arquivo(this.file.toString(), this.file.toString());
 		this.buffer = new StringBuffer();
+		this.numberLocalVar = 0;
 	}
 	
 	public void encode(AST ast) throws SemanticException{
@@ -96,6 +98,7 @@ public class Encoder implements Visitor{
 			
 		}
 		else{
+			this.buffer.append("\n\tpop [ebp-" + intVarDef.position*4 + "]");
 			
 		}
 		
@@ -113,7 +116,7 @@ public class Encoder implements Visitor{
 			
 		}
 		else{
-			
+			this.buffer.append("\n\tpop [ebp-" + boolVarDef.position*4 + "]");
 		}
 		
 		return null;
@@ -122,8 +125,10 @@ public class Encoder implements Visitor{
 	@Override
 	public Object visitFunctionDefintion(FunctionDefinition funcDef, Object arg) throws SemanticException {
 		
-		int variablesNumber;
 		ArrayList<VariableDefinition> vars = funcDef.getVariable();
+		ParametersPrototype params = funcDef.getParams();
+		int variablesNumber;
+		
 		
 		if(funcDef.getIdentifier().getValue().equals("main")){
 			this.buffer.append("\n_WinMain@16:\n");
@@ -133,6 +138,12 @@ public class Encoder implements Visitor{
 		}
 		
 		this.buffer.append("\n\n\tpush ebp\n\tmov ebp, esp\n");
+		
+		if(params != null){
+			params.visit(this, funcDef);
+		}
+		
+		
 		
 		
 		variablesNumber = vars.size();
@@ -144,11 +155,12 @@ public class Encoder implements Visitor{
 		
 		if(vars != null){
 			for(VariableDefinition temp : vars){
+				this.numberLocalVar++;
 				if(temp instanceof IntVariableDefinition){
-					((IntVariableDefinition)temp).visit(this,arg);
+					((IntVariableDefinition)temp).visit(this,vars);
 				}
 				else if(temp instanceof BoolVariableDefinition){
-					((BoolVariableDefinition)temp).visit(this,arg);
+					((BoolVariableDefinition)temp).visit(this,vars);
 				}
 					
 			}
@@ -173,15 +185,17 @@ public class Encoder implements Visitor{
 		this.buffer.append("\n\n\tmov esp, ebp");
         this.buffer.append("\n\tpop ebp");
         this.buffer.append("\n\tret\n");
+        this.numberLocalVar = 0;
 		return null;
 	}
 
 	@Override
 	public Object visitProcedureDefinition(ProcedureDefinition procDef, Object arg) throws SemanticException {
-		
+		ParametersPrototype params = procDef.getParams();
 
 		int variablesNumber;
 		ArrayList<VariableDefinition> vars = procDef.getVariableDefinition();
+		ArrayList<Command> command = procDef.getCommands();
 		
 		if(procDef.getIdentifier().getValue().equals("main")){
 			this.buffer.append("\n_WinMain@16:\n");
@@ -192,6 +206,9 @@ public class Encoder implements Visitor{
 		
 		this.buffer.append("\n\n\tpush ebp\n\tmov ebp, esp\n");
 		
+		if(params != null){
+			params.visit(this, procDef);
+		}
 		
 		variablesNumber = vars.size();
 		
@@ -202,6 +219,7 @@ public class Encoder implements Visitor{
 		
 		if(vars != null){
 			for(VariableDefinition temp : vars){
+				this.numberLocalVar++;
 				if(temp instanceof IntVariableDefinition){
 					((IntVariableDefinition)temp).visit(this,arg);
 				}
@@ -211,6 +229,15 @@ public class Encoder implements Visitor{
 					
 			}
 		}
+		
+		if(command.isEmpty() == false){
+			for(Command com : command){
+				if(com instanceof AssignmentCommand){
+					((AssignmentCommand)com).visit(this, procDef);
+				}
+			}
+		}
+		
 		
 		/*
 		 * 
@@ -231,13 +258,24 @@ public class Encoder implements Visitor{
 		this.buffer.append("\n\n\tmov esp, ebp");
         this.buffer.append("\n\tpop ebp");
         this.buffer.append("\n\tret\n");
+        this.numberLocalVar = 0;
 		
 		return null;
 	}
 
 	@Override
 	public Object visitParametersPrototype(ParametersPrototype params,	Object arg) throws SemanticException {
-		// TODO Auto-generated method stub
+		ArrayList<Identifier> identifier = params.getIdentifier();
+		
+		if(identifier.isEmpty() == false){
+		
+			for(Identifier id : identifier){
+				
+				this.buffer.append("\n\tpush dword [ebp+" + (id.getPosition()*4 + 4) + "]");
+			}
+		}
+		
+		
 		return null;
 	}
 
@@ -249,7 +287,23 @@ public class Encoder implements Visitor{
 
 	@Override
 	public Object visitAssignmentCommand(AssignmentCommand assign, Object arg)	throws SemanticException {
-		// TODO Auto-generated method stub
+		Identifier identifier =  assign.getIdentifier();
+		Expression exp = assign.getExpression();
+		//System.out.println(identifier.getPosition());
+		
+		if(exp != null){
+			exp.visit(this, arg);
+		}
+		if(assign.getIdentifier().getGlobal()){
+			
+		}
+		else if(assign.getIdentifier().getParameter()){
+			this.buffer.append("\n\tpop [ebp+" + (assign.getIdentifier().getPosition() *4 +4) + "]");
+		}
+		else{
+			this.buffer.append("\n\tpop [ebp-" + (assign.getIdentifier().getPosition() *4) + "]");
+		}
+		
 		return null;
 	}
 
@@ -354,14 +408,18 @@ public class Encoder implements Visitor{
 			}
 			else{
 				int numFactor = 0; 
-				for(ExpressionMultiplication temp : right){
-					Object valorRight = temp.visit(this, arg);
+				for(int j = 0 ; j < right.size() ; j += 2){
+				//for(ExpressionMultiplication temp : right){
+					Object valorRight = right.get(j).visit(this, arg);
+					
 					//this.buffer.append("\n\tpush dword " + ((String)valorRight));
 					
-					if(numFactor+1 < right.size()){
-						Object valorNext = right.get(numFactor+1).visit(this, arg);
-						this.buffer.append("\n\tpush dword " + ((String)valorRight));
-						this.buffer.append("\n\tpush dword " + ((String)valorNext));
+					if(j+1 < right.size()){
+						Object valorNext = right.get(j+1).visit(this, arg);
+						if(valorRight != null)
+							this.buffer.append("\n\tpush dword " + ((String)valorRight));
+						if(valorNext != null)
+							this.buffer.append("\n\tpush dword " + ((String)valorNext));
 						Operator opTemp = operadores.get(numOp);
 						lastOp = (String)(opTemp.visit(this, arg));
 						this.buffer.append("\n\tpop ebx");
@@ -369,11 +427,16 @@ public class Encoder implements Visitor{
 						this.buffer.append("\n\t" +lastOp +" eax, ebx");
 						this.buffer.append("\n\tpush dword eax");
 						numOp++;
-						numFactor++;
+						numFactor += 2;
 					}else{
-						break;
+						Object valorNext = right.get(j).visit(this, arg);
+						lastOp = (String) operadores.get(j).visit(this, arg);
+						this.buffer.append("\n\tpush dword " + ((String)valorNext));
+						this.buffer.append("\n\tpop ebx");
+						this.buffer.append("\n\tpop eax");
+						this.buffer.append("\n\t" +lastOp +" eax, ebx");
+						this.buffer.append("\n\tpush dword eax");
 					}
-					lastOp = (String)operadores.get(0).visit(this, arg);
 					/*
 					if(operators != null && operators.size() >= numOp){
 						Operator opTemp = operators.get(numOp);
@@ -383,6 +446,7 @@ public class Encoder implements Visitor{
 					}
 					*/
 				}
+				lastOp = (String)operadores.get(0).visit(this, arg);
 			}
 			
 			this.buffer.append("\n\tpop ebx ");
@@ -431,13 +495,15 @@ public class Encoder implements Visitor{
 				this.buffer.append("\n\tpush dword " + ( (String) valorRight));
 			}
 			else{
-				int numFactor = 0; 
-				for(Factor temp : others){
-					Object valorRight = temp.visit(this, arg);
+				int numFactor = 0;
+				for(int j = 0 ; j < others.size() ; j += 2){
+				//for(Factor temp : others){
+					Object valorRight = others.get(j).visit(this, arg);
 					//this.buffer.append("\n\tpush dword " + ((String)valorRight));
 					
-					if(numFactor+1 < others.size()){
-						Object valorNext = others.get(numFactor+1).visit(this, arg);
+					if(j+1 < others.size()){
+						//Object valorNext = others.get(numFactor+1).visit(this, arg);
+						Object valorNext = others.get(j+1).visit(this, arg);
 						this.buffer.append("\n\tpush dword " + ((String)valorRight));
 						this.buffer.append("\n\tpush dword " + ((String)valorNext));
 						Operator opTemp = operators.get(numOp);
@@ -446,12 +512,18 @@ public class Encoder implements Visitor{
 						this.buffer.append("\n\tpop eax");
 						this.buffer.append("\n\t" +lastOp +" eax, ebx");
 						this.buffer.append("\n\tpush dword eax");
-						numOp++;
-						numFactor++;
+						numOp += 2;
+						numFactor += 2;
 					}else{
-						break;
+						Object valorNext = others.get(j).visit(this, arg);
+						lastOp = (String) operators.get(j).visit(this, arg);
+						this.buffer.append("\n\tpush dword " + ((String)valorNext));
+						this.buffer.append("\n\tpop ebx");
+						this.buffer.append("\n\tpop eax");
+						this.buffer.append("\n\t" +lastOp +" eax, ebx");
+						this.buffer.append("\n\tpush dword eax");
 					}
-					lastOp = (String)operators.get(0).visit(this, arg);
+					
 					/*
 					if(operators != null && operators.size() >= numOp){
 						Operator opTemp = operators.get(numOp);
@@ -461,6 +533,7 @@ public class Encoder implements Visitor{
 					}
 					*/
 				}
+				lastOp = (String)operators.get(0).visit(this, arg);
 			}
 			
 			this.buffer.append("\n\tpop ebx ");

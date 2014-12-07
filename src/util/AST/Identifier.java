@@ -6,6 +6,9 @@ public class Identifier extends Factor{
 
 	private String tipo;
 	private String value;
+	private int position;
+	private boolean global;
+	private boolean parameter;
 	//private String spelling;
 		
 	public Identifier(String value){
@@ -19,12 +22,37 @@ public class Identifier extends Factor{
 		return this.value;
 	}
 	
+	
+	public void setParameter(boolean parameter){
+		this.parameter = parameter;
+	}
+	
+	public boolean getParameter(){
+		return this.parameter;
+	}
+	
+	public void setGlobal(boolean global){
+		this.global = global;
+	}
+	
+	public boolean getGlobal(){
+		return this.global;
+	}
+	
 	public String getValue(){
 		return this.value;
 	}
 	
 	public void setTipo(String tipo){
 		this.tipo = tipo;
+	}
+	
+	public int getPosition(){
+		return this.position;
+	}
+	
+	public void setPosition(int position){
+		this.position = position; 
 	}
 	
 	@Override

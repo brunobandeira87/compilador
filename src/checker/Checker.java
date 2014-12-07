@@ -15,7 +15,7 @@ public final class Checker implements Visitor {
 	
 	private IdentificationTable identificationTable;
 	private Vector<Object> reference;
-	
+	private int localVar;
 
 	public AST check(AST ast) throws SemanticException{
 		Object newAST = null;
@@ -31,6 +31,7 @@ public final class Checker implements Visitor {
 	
 	public Checker(){
 		this.reference = new Vector<Object>();
+		this.localVar = 0;
 	}
 	
 	
@@ -89,10 +90,10 @@ public final class Checker implements Visitor {
 				//this.identificationTable.enter(var.getVariableDefinition().getIdentifier().getValue(), var);
 				Object temp2 = var.getVariableDefinition();
 				if(temp2 instanceof IntVariableDefinition){
-					return ((IntVariableDefinition)temp2).visit(this, arg);
+					return ((IntVariableDefinition)temp2).visit(this, var);
 				}
 				else if(temp2 instanceof BoolVariableDefinition){
-					return ((BoolVariableDefinition)temp2).visit(this, arg);
+					return ((BoolVariableDefinition)temp2).visit(this, var);
 				}
 			//}
 			
@@ -129,12 +130,20 @@ public final class Checker implements Visitor {
 		Object temp = this.identificationTable.retrieve(intVarDef.getIdentifier().getValue());
 		
 		if(temp == null){
-			this.identificationTable.enter(intVarDef.getIdentifier().getValue(), intVarDef);
+			//this.identificationTable.enter(intVarDef.getIdentifier().getValue(), intVarDef);
 			Expression e = intVarDef.getExpression();
 			Object temp2 = e.visit(this, arg);
 			exp = ((Expression)temp2);
 			if(exp.getTipo().equals("INT")){
 				intAST = new IntVariableDefinition(intVarDef.getIdentifier(), intVarDef.getSign(), exp);
+				if(arg instanceof VariableGlobalDefinition){
+					intAST.global = true;
+				}else{
+					this.localVar++;
+					intAST.position = this.localVar;
+					intAST.global = false;
+				}
+				this.identificationTable.enter(intVarDef.getIdentifier().getValue(), intAST);
 				return intAST;
 			}
 			else{
@@ -153,12 +162,21 @@ public final class Checker implements Visitor {
 		Object temp = this.identificationTable.retrieve(boolVarDef.getIdentifier().getValue());
 		
 		if(temp == null){
-			this.identificationTable.enter(boolVarDef.getIdentifier().getValue(), boolVarDef);
+			//this.identificationTable.enter(boolVarDef.getIdentifier().getValue(), boolVarDef);
 			Expression e = boolVarDef.getExpression();
 			Object temp2 = e.visit(this, arg);
 			exp = ((Expression)temp2);
 			if(exp.getTipo().equals("BOOL")){
 				boolAST = new BoolVariableDefinition(boolVarDef.getIdentifier(),  exp);
+				if(arg instanceof VariableGlobalDefinition){
+					boolAST.global = true;
+				}
+				else{
+					this.localVar++;
+					boolAST.position = this.localVar;
+					boolAST.global = false;
+				}
+				this.identificationTable.enter(boolVarDef.getIdentifier().getValue(), boolAST);
 				return boolAST;
 			}
 			else{
@@ -198,8 +216,9 @@ public final class Checker implements Visitor {
 			this.identificationTable.enter(funcDef.getIdentifier().getValue(), funcDef);
 			this.identificationTable.openScope();
 			if(funcDef.getVariable() != null)
-				for(VariableDefinition var : funcDef.getVariable()){
 				
+				for(VariableDefinition var : funcDef.getVariable()){
+					
 					variables.add((VariableDefinition) var.visit(this, funcDef));
 				}
 			if(funcDef.getCommand() != null){
@@ -245,6 +264,7 @@ public final class Checker implements Visitor {
 			funcDefAST.setHasReturn();
 
 			this.identificationTable.closeScope();
+			this.localVar = 0;
 			return funcDefAST;
 		}else{
 			throw new SemanticException("visitFunctionDefinition => Function/Procedure \'" + funcDef.getIdentifier().getValue() + "\' already declared.");
@@ -308,6 +328,7 @@ public final class Checker implements Visitor {
 			}
 			this.identificationTable.closeScope();
 			procDefAST = new ProcedureDefinition(procDef.getIdentifier(), variables, commands, (ParametersPrototype) paramsTemp);
+			this.localVar = 0;
 			return procDefAST;
 
 		}
@@ -344,11 +365,15 @@ public final class Checker implements Visitor {
 			
 			Iterator tipoTempIt = tipoTemp.iterator();
 			ListIterator idTempIt = idTemp.listIterator();
-			
+			int index = 0;
 			while(tipoTempIt.hasNext() && idTempIt.hasNext()){
+				index++;
 				Object idCurrent = idTempIt.next();
 				((Identifier)idCurrent).setTipo(((Tipo)(tipoTempIt.next())).value);
+				((Identifier)idCurrent).setPosition(index);
+				((Identifier)idCurrent).setParameter(true);
 				idTempIt.set(idCurrent);
+				this.identificationTable.enter(((Identifier)idCurrent).getValue(), (AST)idCurrent);
 			}		
 			
 			return new ParametersPrototype(tipoTemp, idTemp, null);
@@ -384,7 +409,9 @@ public final class Checker implements Visitor {
 					if(ast instanceof IntVariableDefinition){
 						if(((IntVariableDefinition)ast).getTipo().equals(((Expression)exp).getTipo())){
 							id = new Identifier(((IntVariableDefinition)ast).getIdentifier().getValue());
+							id.setPosition(((IntVariableDefinition)ast).position);
 							id.setTipo("INT");
+							id.setGlobal(((IntVariableDefinition)ast).global);
 						}
 						else{
 							throw new SemanticException("AssignmentCommand => Trying to assign different types of data");
@@ -393,7 +420,21 @@ public final class Checker implements Visitor {
 					else if(ast instanceof BoolVariableDefinition){
 						if(((BoolVariableDefinition)ast).getTipo().equals(((Expression)exp).getTipo())){
 							id = new Identifier(((BoolVariableDefinition)ast).getIdentifier().getValue());
+							id.setPosition(((BoolVariableDefinition)ast).position);
 							id.setTipo("BOOL");
+							id.setGlobal(((BoolVariableDefinition)ast).global);
+						}
+						else{
+							throw new SemanticException("AssignmentCommand => Trying to assign different types of data");
+						}
+					}
+					else if(ast instanceof Identifier){
+						if(((Identifier)ast).getTipo().equals(((Expression)exp).getTipo())){
+							id = new Identifier(((Identifier)ast).getValue());
+							id.setPosition(((Identifier)ast).getPosition());
+							id.setTipo(((Identifier)ast).getTipo());
+							id.setGlobal(((Identifier)ast).getGlobal());
+							id.setParameter(((Identifier)ast).getParameter());
 						}
 						else{
 							throw new SemanticException("AssignmentCommand => Trying to assign different types of data");
@@ -405,6 +446,7 @@ public final class Checker implements Visitor {
 					if(id.getTipo().equals(((Expression)exp).getTipo())){
 						asgn = new AssignmentCommand(id, (Expression) exp);
 						asgn.setTipo(id.getTipo());
+						
 						return asgn;
 					}
 					else{
@@ -435,6 +477,7 @@ public final class Checker implements Visitor {
 							if(tipo.equals(tipo2)){
 								asgn = new AssignmentCommand(cmd.getIdentifier(), (CallCommand)tmp );
 								asgn.setTipo(tipo2);
+								
 								return asgn;
 							}
 							else{
