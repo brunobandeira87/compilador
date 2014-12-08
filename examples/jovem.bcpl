@@ -1,14 +1,13 @@
+GLOBAL LET INT ue = 5;
+
 LET VOID main() BE{
 	
 }
-AND VOID f1() BE{
-	
+
+AND VOID f(INT x) BE{
 }
 
-AND VOID f2() BE {
-	LET INT y = 2;
-	LET INT o = 3;
-	WHILE( o > y){
-		CALL f1();
-	}
+AND VOID z(INT y) BE{
+	
+	CALL f(y/2);
 }

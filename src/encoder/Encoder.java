@@ -13,6 +13,12 @@ import util.AST.*;
 import util.AST.Number;
 
 
+
+/*
+ * Verificar como a atriuicao tá dando o valor de scopo as parads
+ * 
+ * */
+
 public class Encoder implements Visitor{
 	
 	
@@ -131,12 +137,12 @@ public class Encoder implements Visitor{
 		
 		Expression exp = boolVarDef.getExpression();
 		
-		exp.visit(this, arg);
 		
 		if(arg instanceof VariableGlobalDefinition){
 			
 		}
 		else{
+			exp.visit(this, arg);
 			this.buffer.append("\n\tpop dword [ebp-" + boolVarDef.position*4 + "]");
 		}
 		
@@ -181,9 +187,7 @@ public class Encoder implements Visitor{
 				else if(temp instanceof BoolVariableDefinition){
 					((BoolVariableDefinition)temp).visit(this,vars);
 				}
-				
-				
-					
+						
 			}
 		}
 		
@@ -213,8 +217,6 @@ public class Encoder implements Visitor{
 			}
 			
 		}
-		
-
 		this.buffer.append("\n\n\tmov esp, ebp");
         this.buffer.append("\n\tpop ebp");
         this.buffer.append("\n\tret\n");
@@ -318,6 +320,7 @@ public class Encoder implements Visitor{
 		Identifier identifier =  assign.getIdentifier();
 		Expression exp = assign.getExpression();
 		String tab = "";
+		CallCommand calling = assign.getCallCommand();
 		
 		if(arg instanceof IfCommand){
 			tab = this.getIdentation( ((IfCommand)arg).getScope() );
@@ -356,6 +359,9 @@ public class Encoder implements Visitor{
 		if(exp != null){
 			exp.visit(this, arg);
 		}
+		else if(calling != null){
+			calling.visit(this, arg);
+		}
 		if(assign.getIdentifier().getGlobal()){
 			
 		}
@@ -363,8 +369,11 @@ public class Encoder implements Visitor{
 			this.buffer.append("\n\tpop dword [ebp+" + (assign.getIdentifier().getPosition() *4 +4) + "]");
 		}
 		else{
+			
 			this.buffer.append("\n"+tab+"pop dword [ebp-" + (assign.getIdentifier().getPosition() *4) + "]");
 		}
+		
+		
 		
 		return null;
 	}
@@ -375,6 +384,7 @@ public class Encoder implements Visitor{
 		ParametersCallCommand params = callCmd.getParams();
 		String tab = "";
 		String nomeFuncao = "";
+		boolean procedure = false;
 		if(params != null){
 			params.visit(this, arg);
 		}
@@ -382,6 +392,7 @@ public class Encoder implements Visitor{
 		if(arg instanceof ProcedureDefinition){
 			tab = this.getIdentation(1);
 			nomeFuncao = ((ProcedureDefinition)arg).getIdentifier().getValue();
+			procedure = true;
 		}
 		
 		else if(arg instanceof FunctionDefinition){
@@ -393,6 +404,7 @@ public class Encoder implements Visitor{
 			if(((Vector)arg).firstElement() instanceof FunctionDefinition){
 				
 				nomeFuncao = ((FunctionDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+				procedure = true;
 				
 			}
 			else if(((Vector)arg).firstElement() instanceof ProcedureDefinition){
@@ -423,6 +435,9 @@ public class Encoder implements Visitor{
 			}
 		}
 		
+		if(procedure == false){
+			this.buffer.append("\n" + tab + "push dword eax\n" );
+		}
 		return null;
 	}
 
@@ -762,6 +777,9 @@ public class Encoder implements Visitor{
 				else if(cmd instanceof CallCommand){
 					((CallCommand)cmd).visit(this, this.scopes);
 				}
+				else if(cmd instanceof ResultIsCommand){
+					((ResultIsCommand)cmd).visit(this, this.scopes);
+				}
 				
 			}
 			this.scopes.remove(this.scopes.indexOf(this.scopes.lastElement()));
@@ -797,6 +815,8 @@ public class Encoder implements Visitor{
 		else if(arg instanceof AssignmentCommand){
 			tab = this.getIdentation( ((WhileCommand)arg).getScope() );
 		}
+		
+		
 		
 		else if(arg instanceof Vector){
 			
@@ -998,7 +1018,7 @@ public class Encoder implements Visitor{
 			if(others.size() == 1){
 				Factor temp = others.get(0);
 				Object valorRight = temp.visit(this, arg);
-				Operator opTemp = operators.get(0);
+				Operator opTemp = operators.get(operators.size()-1);
 				lastOp = (String) (opTemp.visit(this,arg));
 				this.buffer.append("\n"+tab+"push dword " + ( (String) valorRight));
 			}
@@ -1012,8 +1032,12 @@ public class Encoder implements Visitor{
 					if(j+1 < others.size()){
 						//Object valorNext = others.get(numFactor+1).visit(this, arg);
 						Object valorNext = others.get(j+1).visit(this, arg);
-						this.buffer.append("\n"+tab+"push dword " + ((String)valorRight));
-						this.buffer.append("\n"+tab+"push dword " + ((String)valorNext));
+						if(valorRight != null){
+							this.buffer.append("\n"+tab+"push dword " + ((String)valorRight));
+						}
+						if(valorNext != null){
+							this.buffer.append("\n"+tab+"push dword " + ((String)valorNext));
+						}
 						Operator opTemp = operators.get(numOp);
 						lastOp = (String)(opTemp.visit(this, arg));
 						this.buffer.append("\n"+tab+"pop ebx");

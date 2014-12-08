@@ -129,30 +129,38 @@ public final class Checker implements Visitor {
 		IntVariableDefinition intAST;
 		Object temp = this.identificationTable.retrieve(intVarDef.getIdentifier().getValue());
 		
-		if(temp == null){
-			//this.identificationTable.enter(intVarDef.getIdentifier().getValue(), intVarDef);
-			Expression e = intVarDef.getExpression();
-			Object temp2 = e.visit(this, arg);
-			exp = ((Expression)temp2);
-			if(exp.getTipo().equals("INT")){
-				intAST = new IntVariableDefinition(intVarDef.getIdentifier(), intVarDef.getSign(), exp);
-				if(arg instanceof VariableGlobalDefinition){
-					intAST.global = true;
-				}else{
-					this.localVar++;
-					intAST.position = this.localVar;
-					intAST.global = false;
+		if(arg instanceof VariableGlobalDefinition){
+			return null;
+		}
+		
+		else{
+			
+			if(temp == null){
+				//this.identificationTable.enter(intVarDef.getIdentifier().getValue(), intVarDef);
+				Expression e = intVarDef.getExpression();
+				Object temp2 = e.visit(this, arg);
+				exp = ((Expression)temp2);
+				if(exp.getTipo().equals("INT")){
+					intAST = new IntVariableDefinition(intVarDef.getIdentifier(), intVarDef.getSign(), exp);
+					if(arg instanceof VariableGlobalDefinition){
+						intAST.global = true;
+					}else{
+						this.localVar++;
+						intAST.position = this.localVar;
+						intAST.global = false;
+					}
+					this.identificationTable.enter(intVarDef.getIdentifier().getValue(), intAST);
+					return intAST;
 				}
-				this.identificationTable.enter(intVarDef.getIdentifier().getValue(), intAST);
-				return intAST;
+				else{
+					throw new SemanticException("visitIntVariableDefinition => Type mismatch");
+				}
 			}
 			else{
-				throw new SemanticException("visitIntVariableDefinition => Type mismatch");
+				throw new SemanticException("visitIntVariableDefinition => Variable \'"  + intVarDef.getIdentifier().getValue() +  "\' already declared.");
 			}
 		}
-		else{
-			throw new SemanticException("visitIntVariableDefinition => Variable \'"  + intVarDef.getIdentifier().getValue() +  "\' already declared.");
-		}
+		
 	
 	}
 
@@ -409,7 +417,7 @@ public final class Checker implements Visitor {
 					if(ast instanceof IntVariableDefinition){
 						if(((IntVariableDefinition)ast).getTipo().equals(((Expression)exp).getTipo())){
 							id = new Identifier(((IntVariableDefinition)ast).getIdentifier().getValue());
-							id.setPosition(((IntVariableDefinition)ast).position);
+							id.setPosition(1);
 							id.setTipo("INT");
 							id.setGlobal(((IntVariableDefinition)ast).global);
 						}
@@ -420,7 +428,7 @@ public final class Checker implements Visitor {
 					else if(ast instanceof BoolVariableDefinition){
 						if(((BoolVariableDefinition)ast).getTipo().equals(((Expression)exp).getTipo())){
 							id = new Identifier(((BoolVariableDefinition)ast).getIdentifier().getValue());
-							id.setPosition(((BoolVariableDefinition)ast).position);
+							id.setPosition(1);
 							id.setTipo("BOOL");
 							id.setGlobal(((BoolVariableDefinition)ast).global);
 						}
@@ -475,9 +483,10 @@ public final class Checker implements Visitor {
 							}
 							
 							if(tipo.equals(tipo2)){
+								cmd.getIdentifier().setPosition(1);
 								asgn = new AssignmentCommand(cmd.getIdentifier(), (CallCommand)tmp );
 								asgn.setTipo(tipo2);
-								
+							
 								return asgn;
 							}
 							else{
@@ -944,26 +953,26 @@ public final class Checker implements Visitor {
 		
 		if(right != null){
 			for(Factor f : expMul.getFactorOthers()){
-				if(esquerdo.equals(f.visit(this, arg))){
+				Object ftemp = f.visit(this, arg);
+				String tipo_f = ((Factor)ftemp).getTipo().toString();
+				if(esquerdo.getTipo().equals(tipo_f)){
 					if(f instanceof Number){
-						others.add(((Number)f));
+						others.add(((Number)ftemp));
 					}else if(f instanceof Bool){
 						if(esquerdo.getTipo().equals("BOOL") && 
 								(operadores != null && (!operadores.get(operadorIndex).value.equals("*") || !operadores.get(operadorIndex).value.equals("*")))){
-							others.add(((Bool)f));
+							others.add(((Bool)ftemp));
 						}else{
 							throw new SemanticException("visitExpressionMultiplication => You cannot operate boolean values");
 						}
 					}
 					else if(f instanceof Expression){
-						others.add(((Expression)f));
+						others.add(((Expression)ftemp));
 					 }
-					
-					/*else if(f instanceof Bool){
-						
-					}*/
-					
-					
+					else if(f instanceof Identifier){
+						others.add(((Identifier)ftemp));
+					}
+
 					
 				}
 				else{

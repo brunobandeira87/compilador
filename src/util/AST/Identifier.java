@@ -15,6 +15,12 @@ public class Identifier extends Factor{
 		
 		this.value = value;
 	}
+	
+	public Identifier(String value, String tipo){
+		this.value = value;
+		this.tipo = tipo;
+	}
+	
 	@Override
 	public String toString(int level) {
 		// TODO Auto-generated method stub

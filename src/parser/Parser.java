@@ -353,14 +353,15 @@ public class Parser {
 		ArrayList<Identifier> identifier = new ArrayList<Identifier>();
 		ArrayList<Operator> virg = new ArrayList<Operator>();
 		ArrayList<Tipo> tipo = new ArrayList<Tipo>();
-		
+		String currentType = "";
 		
 		switch(this.currentToken.getKind()){
 			case INT:
 			case BOOL:
 				tipo.add(new Tipo(this.currentToken.getKind().toString(), this.currentToken.getSpelling()));
+				currentType = this.currentToken.getSpelling();
 				acceptIt();
-				identifier.add(new Identifier(this.currentToken.getSpelling()));
+				identifier.add(new Identifier(this.currentToken.getSpelling(), currentType));
 				accept(TokenKind.IDENTIFIER);
 				while(this.currentToken.getKind() == TokenKind.VIRG){
 					virg.add(new Operator(this.currentToken.getSpelling()));
@@ -368,8 +369,10 @@ public class Parser {
 					if(this.currentToken.getKind() == TokenKind.INT ||
 							this.currentToken.getKind() == TokenKind.BOOL){
 						tipo.add(new Tipo(this.currentToken.getKind().toString(), this.currentToken.getSpelling()));
+						currentType = this.currentToken.getSpelling();
 						acceptIt();
-						identifier.add(new Identifier(this.currentToken.getSpelling()));
+						
+						identifier.add(new Identifier(this.currentToken.getSpelling(), currentType ));
 						accept(TokenKind.IDENTIFIER);
 
 					}else{
