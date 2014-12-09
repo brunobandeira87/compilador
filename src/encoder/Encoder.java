@@ -255,7 +255,7 @@ public class Encoder implements Visitor{
 		
 		if(variablesNumber > 0){
 			variablesNumber *= 4;
-			this.buffer.append("\n\tsub ebp, " + variablesNumber + "\n");
+			this.buffer.append("\n\tsub esp, " + variablesNumber + "\n");
 		}
 		
 		if(vars != null){
@@ -509,26 +509,29 @@ public class Encoder implements Visitor{
 	@Override
 	public Object visitBreakCommand(BreakCommand breakCmd, Object arg) throws SemanticException {
 
-		
+		Object temp = null;
 		String tab ="";
 		String nomeFuncao = "";
 		
 		 if(arg instanceof Vector){
-			if(((Vector)arg).lastElement() instanceof WhileCommand){
-				tab = this.getIdentation(((WhileCommand)(((Vector)arg).lastElement())).getScope());
-				
-				if(((Vector)arg).firstElement() instanceof FunctionDefinition){
-					
-					nomeFuncao = ((FunctionDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
-					
-				}
-				else if(((Vector)arg).firstElement() instanceof ProcedureDefinition){
-					nomeFuncao = ((ProcedureDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
-				}
-			}
+			 for(int i = ((Vector)arg).size() - 1 ; i >= 0; i--){
+				 temp = ((Vector)arg).get(i); 
+				 if(temp instanceof WhileCommand){
+					 tab = this.getIdentation(((WhileCommand)temp).getScope());
+					 if(((Vector)arg).firstElement() instanceof FunctionDefinition){
+							
+							nomeFuncao = ((FunctionDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+							
+						}
+						else if(((Vector)arg).firstElement() instanceof ProcedureDefinition){
+							nomeFuncao = ((ProcedureDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+						}
+					 break;
+				 }
+			 }
 			
 		}
-		this.buffer.append("\n" + tab + "jmp _" + nomeFuncao + "_End_" + ((WhileCommand)(((Vector)arg).lastElement())).getScope() + "_Block");
+		this.buffer.append("\n" + tab + "jmp _" + nomeFuncao + "_End_While_" + ((WhileCommand)temp).getScope() + "\n");
 		
 		return null;
 	}
@@ -570,7 +573,6 @@ public class Encoder implements Visitor{
 		Operator op = exp.getOperator();
 		ElseCommand elseCmd = ifCmd.getElse();
 		String nomeFuncao = null;
-		exp.visit(this,ifCmd);
 		
 		ArrayList<Command> commands = ifCmd.getCommand();
 		String tab = this.getIdentation(ifCmd.getScope());
@@ -599,6 +601,9 @@ public class Encoder implements Visitor{
 			
 		}
 		
+		this.buffer.append("\n" + tab + "_" + nomeFuncao + "_If_" + (ifCmd.getScope()) + "_Block: \n");
+		exp.visit(this,ifCmd);
+		
 		if(op != null){
 			if(op.value.equals("==")){
 				jump += "ne ";
@@ -620,10 +625,10 @@ public class Encoder implements Visitor{
 			}
 			if(elseCmd != null){
 				
-				this.buffer.append("\n\t" + jump + "_" + nomeFuncao + "_Else_" + elseCmd.getScope() + "_Block \n");
+				this.buffer.append("\n" + tab + jump + "_" + nomeFuncao + "_Else_" + elseCmd.getScope() + "_Block \n");
 			}
 			else{
-				this.buffer.append("\n\t" + jump + "_" + nomeFuncao + "_End_If_" + ifCmd.getScope() + " \n");
+				this.buffer.append("\n" + tab + jump + "_" + nomeFuncao + "_End_If_" + ifCmd.getScope() + " \n");
 			}
 			if(commands != null){
 				this.scopes.add(ifCmd);
@@ -647,15 +652,23 @@ public class Encoder implements Visitor{
 					else if(cmd instanceof ResultIsCommand){
 						((ResultIsCommand)cmd).visit(this, this.scopes);
 					}
+					else if(cmd instanceof BreakCommand){
+						((BreakCommand)cmd).visit(this, this.scopes);
+					}
+					else if(cmd instanceof ContinueCommand){
+						((ContinueCommand)cmd).visit(this, this.scopes);
+					}
 				}
 				this.scopes.remove(this.scopes.indexOf(this.scopes.lastElement()));
 			}
+			this.buffer.append("\n" + tab + "jmp _" + nomeFuncao + "_End_If_" + (ifCmd.getScope()) + " \n");
 			if(elseCmd != null){
 				elseCmd.visit(this, arg);
 			}
-			
-			this.buffer.append("\n\t_" + nomeFuncao + "_End_If_" + (ifCmd.getScope()) + ": \n");
+			this.buffer.append("\n" + tab + "_" + nomeFuncao + "_End_If_" + (ifCmd.getScope()) + ": \n");
 			//this.scopes.remove(this.scopes.indexOf(this.scopes.lastElement()));
+			
+			//this.buffer.append("\n" + tab + "jmp _" + nomeFuncao + "_If_" + (ifCmd.getScope()) + "_Block \n");
 		}
 		
 		
@@ -716,6 +729,11 @@ public class Encoder implements Visitor{
 				else if(cmd instanceof BreakCommand){
 					((BreakCommand)cmd).visit(this, this.scopes);
 				}
+				
+				else if(cmd instanceof ContinueCommand){
+					((ContinueCommand)cmd).visit(this, this.scopes);
+				}
+				
 				else if(cmd instanceof ResultIsCommand){
 					((ResultIsCommand)cmd).visit(this, this.scopes);
 				}
@@ -751,6 +769,9 @@ public class Encoder implements Visitor{
 		if(resultCmd.getTipo().equals("INT")){
 			exp.visit(this, arg);
 			this.buffer.append("\n\tpop eax\n");
+			this.buffer.append("\n\n\tmov esp, ebp");
+	        this.buffer.append("\n\tpop ebp");
+	        this.buffer.append("\n\tret\n");
 		}
 		
 		return null;

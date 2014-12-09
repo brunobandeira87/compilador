@@ -373,10 +373,12 @@ public final class Checker implements Visitor {
 		if(id.equals("main")){
 			if(params == null){
 				return null;
-			}else{
+			}
+			else{
 				throw new SemanticException("visitParametersPrototype => \'main\' function/procedure MUST have none parameters");
 			}
-		}else{
+		}
+		else{
 			ArrayList<Tipo> tipoTemp = params.getTipo();
 			ArrayList<Identifier> idTemp = params.getIdentifier();
 			
@@ -528,7 +530,7 @@ public final class Checker implements Visitor {
 		
 		AST cmd = this.identificationTable.retrieve(callCmd.getIdentifier().getValue());
 		String tipo = "";
-		System.out.println(callCmd.getIdentifier().getValue());
+		
 		if(cmd != null){
 			if((ParametersCallCommand) callCmd.getParams() != null){
 				ParametersCallCommand paramsTemp = (ParametersCallCommand) callCmd.getParams().visit(this, arg);
