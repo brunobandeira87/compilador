@@ -32,6 +32,9 @@ public class PrintCommand extends Command{
 		this.identifier = identifier;
 	}
 	
+	public Expression getExpression(){
+		return this.expression;
+	}
 	
 	public Identifier getIdentifier(){
 		return this.identifier;

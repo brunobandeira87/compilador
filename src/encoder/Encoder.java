@@ -29,7 +29,8 @@ public class Encoder implements Visitor{
 	private Vector scopes;
 
 	public Encoder() {
-		this.file = new File("/home/bandeira/Desktop/teste.asm");
+		this.file = new File("C:\\MinGW\\bin\\teste.asm");
+		//this.file = new File("/home/bandeira/Desktop/teste.asm");
 		this.asm = new Arquivo(this.file.toString(), this.file.toString());
 		this.buffer = new StringBuffer();
 		this.numberLocalVar = 0;
@@ -125,7 +126,7 @@ public class Encoder implements Visitor{
 			
 		}
 		else{
-			this.buffer.append("\n\tpop dword [ebp-" + intVarDef.position*4 + "]");
+			this.buffer.append("\n\tpop dword [ebp-" + intVarDef.getIdentifier().getPosition()*4 + "]");
 			
 		}
 		
@@ -143,7 +144,7 @@ public class Encoder implements Visitor{
 		}
 		else{
 			exp.visit(this, arg);
-			this.buffer.append("\n\tpop dword [ebp-" + boolVarDef.position*4 + "]");
+			this.buffer.append("\n\tpop dword [ebp-" + boolVarDef.getIdentifier().getPosition()*4 + "]");
 		}
 		
 		return null;
@@ -166,16 +167,11 @@ public class Encoder implements Visitor{
 		}
 		
 		this.buffer.append("\n\n\tpush ebp\n\tmov ebp, esp\n");
-		
-		if(params != null){
-			params.visit(this, funcDef);
-		}
-		
 		variablesNumber = vars.size();
 		
 		if(variablesNumber > 0){
 			variablesNumber *= 4;
-			this.buffer.append("\n\tsub ebp, " + variablesNumber + "\n");
+			this.buffer.append("\n\tsub esp, " + variablesNumber + "\n");
 		}
 		
 		if(vars != null){
@@ -190,6 +186,11 @@ public class Encoder implements Visitor{
 						
 			}
 		}
+		
+		if(params != null){
+			params.visit(this, funcDef);
+		}
+		
 		
 		if(commands.isEmpty() == false){
 			
@@ -213,6 +214,11 @@ public class Encoder implements Visitor{
 				else if(cmd instanceof CallCommand){
 					((CallCommand)cmd).visit(this, funcDef);
 				}
+				
+				else if(cmd instanceof PrintCommand){
+					((PrintCommand)cmd).visit(this, funcDef);
+				}
+				
 				
 			}
 			
@@ -282,6 +288,10 @@ public class Encoder implements Visitor{
 				else if(com instanceof CallCommand){
 					((CallCommand)com).visit(this, procDef);
 				}
+				else if(com instanceof PrintCommand){
+					((PrintCommand)com).visit(this, procDef);
+				}
+				
 			}
 		}
 
@@ -301,7 +311,7 @@ public class Encoder implements Visitor{
 		
 			for(Identifier id : identifier){
 				
-				this.buffer.append("\n\tpush dword [ebp+" + (id.getPosition()*4 + 4) + "]");
+				//this.buffer.append("\n\tpush dword [ebp+" + (id.getPosition()*4 + 4) + "]");
 			}
 		}
 		
@@ -361,6 +371,7 @@ public class Encoder implements Visitor{
 		}
 		else if(calling != null){
 			calling.visit(this, arg);
+			this.buffer.append("\n" + tab + "push eax\n");
 		}
 		if(assign.getIdentifier().getGlobal()){
 			
@@ -389,26 +400,28 @@ public class Encoder implements Visitor{
 			params.visit(this, arg);
 		}
 		
+		nomeFuncao = callCmd.getIdentifier().getValue();
+		
 		if(arg instanceof ProcedureDefinition){
 			tab = this.getIdentation(1);
-			nomeFuncao = ((ProcedureDefinition)arg).getIdentifier().getValue();
+//			nomeFuncao = ((ProcedureDefinition)arg).getIdentifier().getValue();
 			procedure = true;
 		}
 		
 		else if(arg instanceof FunctionDefinition){
 			tab = this.getIdentation(1);
-			nomeFuncao = ((FunctionDefinition)arg).getIdentifier().getValue();
+//			nomeFuncao = ((FunctionDefinition)arg).getIdentifier().getValue();
 		}
 		
 		else if(arg instanceof Vector){
 			if(((Vector)arg).firstElement() instanceof FunctionDefinition){
 				
-				nomeFuncao = ((FunctionDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+//				nomeFuncao = ((FunctionDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
 				procedure = true;
 				
 			}
 			else if(((Vector)arg).firstElement() instanceof ProcedureDefinition){
-				nomeFuncao = ((ProcedureDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+//				nomeFuncao = ((ProcedureDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
 			}
 			
 			
@@ -427,11 +440,16 @@ public class Encoder implements Visitor{
 			
 		}
 		
+		if(nomeFuncao.equals("main")){
+			nomeFuncao = "WinMain@16";
+		}
+		
 		this.buffer.append("\n" + tab + "call _" + nomeFuncao);
 		if(params != null){
 			if(params.getParams().isEmpty() == false){
 				int numberParams = params.getParams().size();
 				this.buffer.append("\n" + tab + "add esp, " + numberParams * 4 + "\n");
+				
 			}
 		}
 		
@@ -444,11 +462,29 @@ public class Encoder implements Visitor{
 	@Override
 	public Object visitContinueCommand(ContinueCommand continueCmd, Object arg) throws SemanticException {
 
-		
+		Object temp = null;
 		String tab ="";
 		String nomeFuncao = "";
 		
 		 if(arg instanceof Vector){
+			 
+			 for(int i = ((Vector)arg).size() - 1 ; i >= 0; i--){
+				 temp = ((Vector)arg).get(i); 
+				 if(temp instanceof WhileCommand){
+					 tab = this.getIdentation(((WhileCommand)temp).getScope());
+					 if(((Vector)arg).firstElement() instanceof FunctionDefinition){
+							
+							nomeFuncao = ((FunctionDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+							
+						}
+						else if(((Vector)arg).firstElement() instanceof ProcedureDefinition){
+							nomeFuncao = ((ProcedureDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
+						}
+					 break;
+				 }
+			 }
+			 
+			/* 
 			if(((Vector)arg).lastElement() instanceof WhileCommand){
 				tab = this.getIdentation(((WhileCommand)(((Vector)arg).lastElement())).getScope());
 				
@@ -461,9 +497,10 @@ public class Encoder implements Visitor{
 					nomeFuncao = ((ProcedureDefinition)(((Vector)arg).firstElement())).getIdentifier().getValue();
 				}
 			}
+			*/
 			
+			 this.buffer.append("\n" + tab + "jmp _" + nomeFuncao + "_While_" + ((WhileCommand)temp).getScope() + "_Block");
 		}
-		this.buffer.append("\n" + tab + "jmp _" + nomeFuncao + "_" + ((WhileCommand)(((Vector)arg).lastElement())).getScope() + "_Block");
 		
 		
 		return null;
@@ -501,7 +538,7 @@ public class Encoder implements Visitor{
 	
 		
 		Identifier identifier = printCmd.getIdentifier();
-		
+		Expression exp = printCmd.getExpression();
 		if(identifier != null){
 			if(identifier.getGlobal() == false && identifier.getParameter() == false){
 				
@@ -514,10 +551,14 @@ public class Encoder implements Visitor{
 				this.buffer.append("\n\tpush dword [ebp+" + (identifier.getPosition() * 4 + 4) +"]");
 			}
 			
-			this.buffer.append("\n\tpush dword intFormat");
-			this.buffer.append("\n\tcall _printf");
-			this.buffer.append("\n\tadd esp, 8\n\n");
 		}
+		
+		else if(exp != null){
+			exp.visit(this, arg);
+		}
+		this.buffer.append("\n\tpush dword intFormat");
+		this.buffer.append("\n\tcall _printf");
+		this.buffer.append("\n\tadd esp, 8\n\n");
 		
 		return null;
 	}
@@ -603,6 +644,9 @@ public class Encoder implements Visitor{
 					else if(cmd instanceof CallCommand){
 						((CallCommand)cmd).visit(this, this.scopes);
 					}
+					else if(cmd instanceof ResultIsCommand){
+						((ResultIsCommand)cmd).visit(this, this.scopes);
+					}
 				}
 				this.scopes.remove(this.scopes.indexOf(this.scopes.lastElement()));
 			}
@@ -665,6 +709,15 @@ public class Encoder implements Visitor{
 				}
 				else if(cmd instanceof CallCommand){
 					((CallCommand)cmd).visit(this, this.scopes);
+				}
+				else if(cmd instanceof ContinueCommand){
+					((ContinueCommand)cmd).visit(this, this.scopes);
+				}
+				else if(cmd instanceof BreakCommand){
+					((BreakCommand)cmd).visit(this, this.scopes);
+				}
+				else if(cmd instanceof ResultIsCommand){
+					((ResultIsCommand)cmd).visit(this, this.scopes);
 				}
 			}
 			
@@ -930,7 +983,10 @@ public class Encoder implements Visitor{
 					}else{
 						Object valorNext = right.get(j).visit(this, arg);
 						lastOp = (String) operadores.get(j).visit(this, arg);
-						this.buffer.append("\n"+tab+"push dword " + ((String)valorNext));
+						if(valorNext != null){
+							
+							this.buffer.append("\n"+tab+"push dword " + ((String)valorNext));
+						}
 						this.buffer.append("\n"+tab+"pop ebx");
 						this.buffer.append("\n"+tab+"tpop eax");
 						this.buffer.append("\n"+tab+"" +lastOp +" eax, ebx");
@@ -1020,7 +1076,10 @@ public class Encoder implements Visitor{
 				Object valorRight = temp.visit(this, arg);
 				Operator opTemp = operators.get(operators.size()-1);
 				lastOp = (String) (opTemp.visit(this,arg));
-				this.buffer.append("\n"+tab+"push dword " + ( (String) valorRight));
+				if(valorRight != null){
+					
+					this.buffer.append("\n"+tab+"push dword " + ( (String) valorRight));
+				}
 			}
 			else{
 				int numFactor = 0;
@@ -1046,7 +1105,8 @@ public class Encoder implements Visitor{
 						this.buffer.append("\n\tpush dword eax");
 						numOp += 2;
 						numFactor += 2;
-					}else{
+					}
+					else{
 						Object valorNext = others.get(j).visit(this, arg);
 						lastOp = (String) operators.get(j).visit(this, arg);
 						this.buffer.append("\n"+tab+"push dword " + ((String)valorNext));
@@ -1162,7 +1222,7 @@ public class Encoder implements Visitor{
 			return "imul";
 		}
 		else if(operator.value.equals("/")){
-			return "div";
+			return "idiv";
 		}
 		else if(operator.value.equals(">")){
 			

@@ -1,13 +1,38 @@
-GLOBAL LET INT ue = 5;
 
-LET VOID main() BE{
-	
+AND INT fatorialNaoRecursivo(INT num) = VALOF {
+    LET INT retorno = 1;
+    
+
+    IF ( num > 0 ) {
+       WHILE (1 == 1 ) {
+            retorno = ((retorno * num));
+            num = ((num - 1));
+            IF ( num == 0 ) {
+               BREAK;
+            }
+      }
+      RESULTIS retorno;
+    } ELSE {
+      RESULTIS 0;
+    }
 }
 
-AND VOID f(INT x) BE{
-}
 
-AND VOID z(INT y) BE{
-	
-	CALL f(y/2);
+LET VOID main() BE {
+     LET INT a = 5;
+     LET INT res1 = 0;
+     LET INT res2 = 0;
+	 LET BOOL igual = FALSE;
+
+     WRITEF(a);
+     WRITEF(res1);
+     
+     res1 = CALL fatorialNaoRecursivo(a);
+    
+
+  
+  
+
+
+     
 }

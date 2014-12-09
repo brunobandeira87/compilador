@@ -88,7 +88,7 @@ public class Parser {
 			variableGlobalDefintion.add(parseVariableGlobalDefinition());
 			hasGlobalVariable = true;
 		}
-		if(this.currentToken.getKind() == TokenKind.LET){
+		if(this.currentToken.getKind() == TokenKind.LET || this.currentToken.getKind() == TokenKind.AND){
 			funcProcAST  = parseFuncProcDefinitionList();
 		}
 		else{
@@ -181,14 +181,29 @@ public class Parser {
 		ArrayList<ReservedWord> reservedWord = new ArrayList<ReservedWord>();
 		ArrayList<CallableDefinition> callableDefinition = new ArrayList<CallableDefinition>();
 		FunctionProcedureDefinitionList funcprocAST = null;
+		boolean hasMain = false;
 		
-		if(this.currentToken.getKind() == TokenKind.LET){
-			reservedWord.add(new ReservedWord(TokenKind.LET.toString()));
-			accept(TokenKind.LET);
+		if(this.currentToken.getKind() == TokenKind.LET || this.currentToken.getKind() == TokenKind.AND){
+			String reserved =  this.currentToken.getSpelling();
+			if(this.currentToken.getKind() == TokenKind.LET){
+				hasMain = true;
+			}
+			reservedWord.add(new ReservedWord(reserved));
+			acceptIt();
 			callableDefinition.add(parseCallableDefinition());
-			while(this.currentToken.getKind() == TokenKind.AND){
-				reservedWord.add(new ReservedWord(TokenKind.AND.toString()));
-				accept(TokenKind.AND);
+			while(this.currentToken.getKind() == TokenKind.AND || this.currentToken.getKind() == TokenKind.LET){
+				reserved =  this.currentToken.getSpelling();
+				if(reserved.equals("LET")){
+					if(hasMain){
+						throw new SyntacticException("main Declared! " + currentToken.toString(), currentToken);
+					}
+					else{
+						hasMain = true;
+					}
+				}
+				reservedWord.add(new ReservedWord(reserved));
+				
+				acceptIt();
 				callableDefinition.add(parseCallableDefinition());
 			}
 			accept(TokenKind.EOF);
@@ -252,7 +267,8 @@ public class Parser {
 					variableDefinition.add(parseVariableDefinition());
 				}
 				while(this.currentToken.getKind() == TokenKind.WHILE || this.currentToken.getKind() == TokenKind.IF || this.currentToken.getKind() == TokenKind.BREAK ||
-						this.currentToken.getKind() == TokenKind.WRITEF || this.currentToken.getKind() == TokenKind.CONTINUE || this.currentToken.getKind() == TokenKind.IDENTIFIER || this.currentToken.getKind() == TokenKind.RESULTIS){
+						this.currentToken.getKind() == TokenKind.WRITEF || this.currentToken.getKind() == TokenKind.CONTINUE || this.currentToken.getKind() == TokenKind.IDENTIFIER || this.currentToken.getKind() == TokenKind.RESULTIS
+						|| this.currentToken.getKind() == TokenKind.CALL){
 					hasCommand = true;
 					command.add(parseCommand());
 				}
@@ -854,6 +870,12 @@ public class Parser {
 				accept(TokenKind.RPAR);
 			break;
 			
+			case MINUSSIGN:
+				acceptIt();
+				factorAST = new Number("-" + this.currentToken.getSpelling());
+				accept(TokenKind.NUMBER);
+				break;
+			
 			default:
 				factorAST = null;
 			break;
@@ -861,52 +883,6 @@ public class Parser {
 		
 		return factorAST;
 		
-		/*
-		
-		CallCommand callCommand;
-		
-		switch(this.currentToken.getKind()){
-			
-			case IDENTIFIER:
-				Identifier identifier = new Identifier(this.currentToken.getKind().toString(), this.currentToken.getSpelling());
-				accept(TokenKind.IDENTIFIER);
-				factorAST = new Factor(null, null, null, identifier);
-
-			break;
-		
-			case NUMBER:
-				Number number = new Number(this.currentToken.getKind().toString(), this.currentToken.getSpelling());
-				accept(TokenKind.NUMBER);
-				factorAST = new Factor(null, null, null, number);
-			break;
-			
-			case TRUE:
-			case FALSE:
-				Bool bool = new Bool(this.currentToken.getKind().toString(), this.currentToken.getSpelling());
-				acceptIt();
-				factorAST = new Factor(null, null, null, bool);
-			break;
-						
-			case LPAR:
-				accept(TokenKind.LPAR);
-				Expression expression = parseExpression();
-				accept(TokenKind.RPAR);
-				factorAST = new Factor(null, null, null, expression);
-			break;
-			
-			case CALL:
-				//LET INT X = CALL m(y, z);
-				callCommand = parseCallCommand();
-				factorAST = new Factor(null, null, null, callCommand);
-				
-			default:
-	
-				break;
-				
-			
-		}
-		return factorAST;
-		 */
 	}
 		
 }

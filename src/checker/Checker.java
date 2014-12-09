@@ -61,6 +61,8 @@ public final class Checker implements Visitor {
 			}
 		}
 		
+		
+		
 		if(program.getFunctionProcedureDefinitionList().getCallableDefinition() != null){
 			for(CallableDefinition call : program.getFunctionProcedureDefinitionList().getCallableDefinition()){
 				//this.reference.add(call);
@@ -146,10 +148,12 @@ public final class Checker implements Visitor {
 						intAST.global = true;
 					}else{
 						this.localVar++;
-						intAST.position = this.localVar;
-						intAST.global = false;
+						intAST.getIdentifier().setPosition(this.localVar);
+						intAST.getIdentifier().setGlobal(false);
+						intAST.getIdentifier().setTipo("INT");
+						
 					}
-					this.identificationTable.enter(intVarDef.getIdentifier().getValue(), intAST);
+					this.identificationTable.enter(intAST.getIdentifier().getValue(), intAST);
 					return intAST;
 				}
 				else{
@@ -177,12 +181,13 @@ public final class Checker implements Visitor {
 			if(exp.getTipo().equals("BOOL")){
 				boolAST = new BoolVariableDefinition(boolVarDef.getIdentifier(),  exp);
 				if(arg instanceof VariableGlobalDefinition){
-					boolAST.global = true;
+					boolAST.getIdentifier().setGlobal(true);
 				}
 				else{
 					this.localVar++;
-					boolAST.position = this.localVar;
-					boolAST.global = false;
+					boolAST.getIdentifier().setTipo("BOOL");
+					boolAST.getIdentifier().setPosition(this.localVar);
+					boolAST.getIdentifier().setGlobal(false);
 				}
 				this.identificationTable.enter(boolVarDef.getIdentifier().getValue(), boolAST);
 				return boolAST;
@@ -214,6 +219,8 @@ public final class Checker implements Visitor {
 			
 			params = funcDef.getParams();
 			Object paramsTemp;
+			this.identificationTable.enter(funcDef.getIdentifier().getValue(), funcDef);
+			this.identificationTable.openScope();
 			if(params != null){
 				paramsTemp = params.visit(this, funcDef);
 				funcDef.setParams((ParametersPrototype)(paramsTemp));
@@ -221,8 +228,8 @@ public final class Checker implements Visitor {
 			
 			
 			
-			this.identificationTable.enter(funcDef.getIdentifier().getValue(), funcDef);
-			this.identificationTable.openScope();
+			
+			//System.out.println(funcDef.getIdentifier().getValue());
 			if(funcDef.getVariable() != null)
 				
 				for(VariableDefinition var : funcDef.getVariable()){
@@ -270,6 +277,8 @@ public final class Checker implements Visitor {
 			
 			funcDefAST = new FunctionDefinition(funcDef.getTipo(),funcDef.getIdentifier(), funcDef.getParams(),commands, variables);
 			funcDefAST.setHasReturn();
+			
+			
 
 			this.identificationTable.closeScope();
 			this.localVar = 0;
@@ -295,10 +304,10 @@ public final class Checker implements Visitor {
 			
 			params = procDef.getParams();
 			Object paramsTemp = null;
+			this.identificationTable.openScope();
 			if(params != null)
 				paramsTemp = params.visit(this, procDef);
 			
-			this.identificationTable.openScope();
 			if(procDef.getVariableDefinition() != null)
 				for(VariableDefinition var : procDef.getVariableDefinition()){
 					variables.add((VariableDefinition) var.visit(this, arg));
@@ -481,6 +490,10 @@ public final class Checker implements Visitor {
 								ast = (IntVariableDefinition)ast;
 								tipo2 = ((IntVariableDefinition) ast).getTipo();
 							}
+							else if(ast instanceof Identifier){
+								ast = (Identifier)ast;
+								tipo2 = ((Identifier) ast).getTipo();
+							}
 							
 							if(tipo.equals(tipo2)){
 								cmd.getIdentifier().setPosition(1);
@@ -515,6 +528,7 @@ public final class Checker implements Visitor {
 		
 		AST cmd = this.identificationTable.retrieve(callCmd.getIdentifier().getValue());
 		String tipo = "";
+		System.out.println(callCmd.getIdentifier().getValue());
 		if(cmd != null){
 			if((ParametersCallCommand) callCmd.getParams() != null){
 				ParametersCallCommand paramsTemp = (ParametersCallCommand) callCmd.getParams().visit(this, arg);
@@ -561,7 +575,7 @@ public final class Checker implements Visitor {
 			
 		}
 		else{
-			throw new SemanticException("visitCallCommand => Function/Procedure not declared.");
+			throw new SemanticException("visitCallCommand => Function/Procedure '" + callCmd.getIdentifier().getValue() + "' not declared.");
 		}
 			
 			
@@ -573,9 +587,24 @@ public final class Checker implements Visitor {
 		if(arg instanceof WhileCommand){
 			return continueCmd;
 		}
+		
+		else if(arg instanceof Vector){
+			
+			
+			if(((Vector) arg).isEmpty() == false){
+				for(int i = ((Vector)arg).size()-1; i > 0 ; i--){
+					Object temp = ((Vector) arg).get(i);
+					if(temp instanceof WhileCommand){
+						return continueCmd;
+					}
+					
+				}
+			}
+		}
 		else{
 			throw new SemanticException("visitContinueCommand => CONTINUE MUST be used within loop command");
 		}
+		return null;
 	}
 
 	public Object visitBreakCommand(BreakCommand breakCmd, Object arg)	throws SemanticException {
@@ -583,21 +612,67 @@ public final class Checker implements Visitor {
 		if(arg instanceof WhileCommand){
 			
 			return breakCmd;
-		}else{
+			
+		}
+		else if(arg instanceof Vector){
+			
+			
+			if(((Vector) arg).isEmpty() == false){
+				for(int i = ((Vector)arg).size()-1; i > 0 ; i--){
+					Object temp = ((Vector) arg).get(i);
+					if(temp instanceof WhileCommand){
+						return breakCmd;
+					}
+					
+				}
+			}
+		}
+		
+		else{
 			throw new SemanticException("visitBreakCommand => 'BREAK' MUST be used within loop command");
 		}
+		return arg;
 		
 		
 	}
 
 	public Object visitPrintCommand(PrintCommand printCmd, Object arg)	throws SemanticException {
-		
-		Object identifier;
+		Expression exp;
+		Identifier identifier;
+		Object id;
 		PrintCommand pAST;
+		
+		
 		if(printCmd.getIdentifier() != null){
-			identifier = printCmd.getIdentifier().visit(this, arg);
-			Identifier temp = (Identifier) identifier; 
-			pAST = new PrintCommand(temp);
+			
+			id =  this.identificationTable.retrieve(printCmd.getIdentifier().getValue());
+			
+			
+			if(id != null){
+			
+				if(id instanceof Identifier){
+					pAST = new PrintCommand((Identifier)id);
+					return pAST;
+					
+				}
+				else if(id instanceof IntVariableDefinition){
+					pAST = new PrintCommand(((IntVariableDefinition)id).getIdentifier());
+					return pAST;
+				}
+				else if(id instanceof BoolVariableDefinition){
+					pAST = new PrintCommand(((BoolVariableDefinition)id).getIdentifier());
+					return pAST;
+				}
+				//identifier = (Identifier) id.visit(this, arg);
+				 
+			}
+			else{
+				throw new SemanticException("visitPrintCommand => '" + printCmd.getIdentifier().getValue() + "' not declared! ");
+			}
+		}
+		else if(printCmd.getExpression() != null){
+			exp = (Expression) printCmd.getExpression().visit(this, arg);
+			pAST = new PrintCommand(exp);
 			return pAST;
 		}
 		
@@ -612,7 +687,7 @@ public final class Checker implements Visitor {
 		ArrayList<Command> cmd =  new ArrayList<Command>();
 		IfCommand ic; 
 		if(arg instanceof Vector){
-			((Vector<IfCommand>)arg).add(ifCmd);
+			((Vector)arg).add(ifCmd);
 		}
 		if(exp != null){
 			e = (Expression) ((Expression)exp).visit(this, arg);
@@ -659,13 +734,15 @@ public final class Checker implements Visitor {
 			
 			this.identificationTable.closeScope();
 			
-			}
+		}
 		if(elseCommand != null){
-			elseCommand = (ElseCommand) elseCommand.visit(this, ifCmd);
+			elseCommand = (ElseCommand) elseCommand.visit(this, arg);
 			elseCommand.setScope(currentScope);
 		
 		}
-		
+		if(arg instanceof Vector){
+			((Vector)arg).remove(ifCmd);
+		}
 		ic = new IfCommand(e, cmd, elseCommand);
 		ic.setScope(currentScope);
 		return ic;
@@ -673,11 +750,15 @@ public final class Checker implements Visitor {
 
 	public Object visitElseCommand(ElseCommand elseCmd, Object arg) 	throws SemanticException {
 		
+		ArrayList<Command> command = elseCmd.getCommand();
+		ArrayList<Command> cmd = new ArrayList<Command>();
+		
+		int currentScope;
 		if(arg instanceof IfCommand){
-			ArrayList<Command> command = elseCmd.getCommand();
-			ArrayList<Command> cmd = new ArrayList<Command>();
 			
-			int currentScope = ((IfCommand)arg).getScope();
+			
+			
+			currentScope = ((IfCommand)arg).getScope();
 			this.identificationTable.openScope();
 			if(command != null){
 				for(Command c : command){
@@ -712,10 +793,72 @@ public final class Checker implements Visitor {
 				}
 				this.identificationTable.closeScope();
 			}
+			
+			
+			
 			ElseCommand ecmd = new ElseCommand(cmd);
 			ecmd.setScope(currentScope);
 			return ecmd;
 		}
+		
+		else if(arg instanceof Vector){
+			
+			if(((Vector)arg).lastElement() instanceof IfCommand){
+				IfCommand ifcmd = (IfCommand)((Vector)arg).lastElement();
+				 currentScope = ifcmd.getScope();
+			}
+			else{
+				throw new SemanticException("visitElseCommand => You MUST declare an IF Statement before using an ELSE Statement");
+			}
+			
+			((Vector)arg).add(elseCmd);
+			
+			this.identificationTable.openScope();
+			if(command != null){
+				for(Command c : command){
+					if(c instanceof IfCommand){
+						cmd.add( (Command) ((IfCommand)c).visit(this, arg));
+					}
+					else if(c instanceof AssignmentCommand){
+						cmd.add( (Command) ((AssignmentCommand)c).visit(this, arg));
+					}
+					else if(c instanceof WhileCommand){
+						cmd.add( (Command) ((WhileCommand)c).visit(this,arg));
+					}
+					else if(c instanceof CallCommand){
+						cmd.add( (Command) ((CallCommand)c).visit(this,arg));
+					}
+					else if(c instanceof ContinueCommand){
+						cmd.add( (Command) ((ContinueCommand)c).visit(this, arg));
+					}
+					else if(c instanceof BreakCommand){
+						cmd.add( (Command) ((BreakCommand)c).visit(this, arg));
+						break;
+					}
+					else if(c instanceof ResultIsCommand){
+						cmd.add( (Command) ((ResultIsCommand)c).visit(this, arg));
+					}
+					else if(c instanceof ElseCommand){
+						cmd.add( (Command)  ((ElseCommand)c).visit(this, arg));
+					}
+					else if(c instanceof PrintCommand){
+						cmd.add( (Command) ((PrintCommand)c).visit(this, arg));
+					}
+				}
+				this.identificationTable.closeScope();
+			}
+			
+			if(arg instanceof Vector){
+				((Vector)arg).remove(elseCmd);
+			}
+			
+			ElseCommand ecmd = new ElseCommand(cmd);
+			ecmd.setScope(currentScope);
+			return ecmd;
+			
+		}
+		
+		
 		else{
 			throw new SemanticException("visitElseCommand => You MUST declare an IF Statement before using an ELSE Statement");
 		}
@@ -725,8 +868,8 @@ public final class Checker implements Visitor {
 	public Object visitParametersCallCommand(ParametersCallCommand params,	Object arg) throws SemanticException {
 		
 		ArrayList<Factor> newPar = new ArrayList<Factor>();
-		
-		for(Factor x : params.getParams()){
+		ArrayList<Factor> oldPar = params.getParams();
+		for(Factor x : oldPar){
 			newPar.add((Factor) x.visit(this, arg));
 		}
 				
@@ -775,12 +918,16 @@ public final class Checker implements Visitor {
 			throw new SemanticException("visitWhileCommand => Expression failed");
 		}
 		
+		if(arg instanceof Vector){
+			((Vector) arg).add(whileCmd);
+		}
+		
 		Object cmd = whileCmd.getCommand();
 		if(cmd != null){
 			this.identificationTable.openScope();
 			for(Command c : whileCmd.getCommand()){
 				if(c instanceof BreakCommand){
-					command.add((Command) ((BreakCommand)c).visit(this, whileCmd));
+					command.add((Command) ((BreakCommand)c).visit(this, arg));
 					break;
 				}
 				else if(c instanceof ResultIsCommand){
@@ -800,12 +947,14 @@ public final class Checker implements Visitor {
 					command.add((Command) ((CallCommand)c).visit(this, arg));
 				}
 				else if(c instanceof WhileCommand){
-					command.add((Command) ((WhileCommand)c).visit(this, whileCmd));
+					command.add((Command) ((WhileCommand)c).visit(this, arg));
 				}
 			}
 			this.identificationTable.closeScope();
 		}
-		
+		if(arg instanceof Vector){
+			((Vector) arg).remove(whileCmd);
+		}
 		wcmd = new WhileCommand(exp, command);
 		wcmd.setScope(scope);
 		
@@ -1017,18 +1166,18 @@ public final class Checker implements Visitor {
 		if(ast != null){
 		//System.out.println(identifier.getValue() + "\n");
 			if(ast instanceof IntVariableDefinition){
-				idAST = new Identifier(((IntVariableDefinition)ast).getIdentifier().toString());
+				idAST = new Identifier(((IntVariableDefinition)ast).getIdentifier().getValue());
 				idAST.setTipo("INT");
-				idAST.setGlobal(((IntVariableDefinition)ast).global);
+				idAST.setGlobal(((IntVariableDefinition)ast).getIdentifier().getGlobal());
 				//idAST.setParameter(((BoolVariableDefinition)ast).getParameter());
-				idAST.setPosition(((IntVariableDefinition)ast).position);
+				idAST.setPosition(((IntVariableDefinition)ast).getIdentifier().getPosition());
 				
 			}else if(ast instanceof BoolVariableDefinition){
-				idAST = new Identifier(((BoolVariableDefinition)ast).getIdentifier().toString());
+				idAST = new Identifier(((BoolVariableDefinition)ast).getIdentifier().getValue());
 				idAST.setTipo("BOOL");
-				idAST.setGlobal(((BoolVariableDefinition)ast).global);
+				idAST.setGlobal(((BoolVariableDefinition)ast).getIdentifier().getGlobal());
 				//idAST.setParameter(((BoolVariableDefinition)ast).getParameter());
-				idAST.setPosition(((BoolVariableDefinition)ast).position);
+				idAST.setPosition(((BoolVariableDefinition)ast).getIdentifier().getPosition());
 			}
 			else if(ast instanceof Identifier){
 				idAST = new Identifier(((Identifier)ast).getValue());
