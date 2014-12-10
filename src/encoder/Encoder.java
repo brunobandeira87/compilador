@@ -120,16 +120,17 @@ public class Encoder implements Visitor{
 		
 		Expression exp = intVarDef.getExpression();
 		
-		exp.visit(this, arg);
 		
 		if(arg instanceof VariableGlobalDefinition){
 			
 		}
 		else{
-			this.buffer.append("\n\tpop dword [ebp-" + intVarDef.getIdentifier().getPosition()*4 + "]");
+			exp.visit(this, arg);
+			intVarDef.getIdentifier().setPosition(this.numberLocalVar);
+			this.buffer.append("\n\tpop dword [ebp-" + this.numberLocalVar*4 + "]");
 			
 		}
-		
+		//System.out.println(this.numberLocalVar);
 		return null;
 	}
 
@@ -144,7 +145,8 @@ public class Encoder implements Visitor{
 		}
 		else{
 			exp.visit(this, arg);
-			this.buffer.append("\n\tpop dword [ebp-" + boolVarDef.getIdentifier().getPosition()*4 + "]");
+			boolVarDef.getIdentifier().setPosition(this.numberLocalVar);
+			this.buffer.append("\n\tpop dword [ebp-" +this.numberLocalVar*4 + "]");
 		}
 		
 		return null;
@@ -175,6 +177,7 @@ public class Encoder implements Visitor{
 		}
 		
 		if(vars != null){
+			
 			for(VariableDefinition temp : vars){
 				this.numberLocalVar++;
 				if(temp instanceof IntVariableDefinition){
@@ -294,6 +297,7 @@ public class Encoder implements Visitor{
 				
 			}
 		}
+		
 
 		this.buffer.append("\n\n\tmov esp, ebp");
         this.buffer.append("\n\tpop ebp");
@@ -372,6 +376,7 @@ public class Encoder implements Visitor{
 		else if(calling != null){
 			calling.visit(this, arg);
 			this.buffer.append("\n" + tab + "push eax\n");
+			
 		}
 		if(assign.getIdentifier().getGlobal()){
 			
@@ -382,6 +387,7 @@ public class Encoder implements Visitor{
 		else{
 			
 			this.buffer.append("\n"+tab+"pop dword [ebp-" + (assign.getIdentifier().getPosition() *4) + "]");
+			
 		}
 		
 		

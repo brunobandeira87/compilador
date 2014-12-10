@@ -1,38 +1,38 @@
 
-AND INT fatorialNaoRecursivo(INT num) = VALOF {
-    LET INT retorno = 1;
-    
-
+AND INT fatorialRecursivo(INT num) = VALOF {
+    LET INT retorno = 0;
+	
     IF ( num > 0 ) {
-       WHILE (1 == 1 ) {
-       		
-            retorno = ((retorno * num));
-            num = ((num - 1));
-            IF ( num == 0 ) {
-               BREAK;
-            }
-      }
-      
-      RESULTIS retorno;
+       IF ( num == 1 ) {
+          RESULTIS 1;
+       } ELSE {
+         retorno = num;
+         num = num - 1;
+         num = CALL fatorialRecursivo(num);
+         
+         retorno = retorno * num;
+         
+         RESULTIS retorno;
+       }
     } ELSE {
-      
       RESULTIS 0;
     }
 }
 
 
+
 LET VOID main() BE {
-     LET INT a = 5;
-     LET INT res1 = 0;
+     LET INT a = 3;
      LET INT res2 = 0;
 	 LET BOOL igual = FALSE;
+     LET INT res1 = 0;
 
-     WRITEF(a);
-     WRITEF(res1);
-     
-     res1 = CALL fatorialNaoRecursivo(a);
     
-     WRITEF(res1);
+     
+    
+     res2 = CALL fatorialRecursivo(a);
+     
+     WRITEF(res2);
 
   
   

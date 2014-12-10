@@ -498,7 +498,22 @@ public final class Checker implements Visitor {
 							}
 							
 							if(tipo.equals(tipo2)){
-								cmd.getIdentifier().setPosition(1);
+								if(tipo.equals("INT")){
+									if(ast instanceof IntVariableDefinition){
+										cmd.getIdentifier().setPosition(((IntVariableDefinition)ast).getIdentifier().getPosition());
+									}
+									else if(ast instanceof Identifier){
+										cmd.getIdentifier().setPosition(((Identifier)ast).getPosition());
+									}
+								}
+								else{
+									if(ast instanceof BoolVariableDefinition){
+										cmd.getIdentifier().setPosition(((BoolVariableDefinition)ast).getIdentifier().getPosition());
+									}
+									else if(ast instanceof Identifier){
+										cmd.getIdentifier().setPosition(((Identifier)ast).getPosition());
+									}
+								}
 								asgn = new AssignmentCommand(cmd.getIdentifier(), (CallCommand)tmp );
 								asgn.setTipo(tipo2);
 							
