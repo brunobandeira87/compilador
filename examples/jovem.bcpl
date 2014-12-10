@@ -1,42 +1,10 @@
+LET INT main() = VALOF {
 
-AND INT fatorialRecursivo(INT num) = VALOF {
-    LET INT retorno = 0;
+	LET INT x = -4;
 	
-    IF ( num > 0 ) {
-       IF ( num == 1 ) {
-          RESULTIS 1;
-       } ELSE {
-         retorno = num;
-         num = num - 1;
-         num = CALL fatorialRecursivo(num);
-         
-         retorno = retorno * num;
-         
-         RESULTIS retorno;
-       }
-    } ELSE {
-      RESULTIS 0;
-    }
-}
+	x = 16 / 2 * 3 + 1;
+	
+	WRITEF(x);
 
-
-
-LET VOID main() BE {
-     LET INT a = 3;
-     LET INT res2 = 0;
-	 LET BOOL igual = FALSE;
-     LET INT res1 = 0;
-
-    
-     
-    
-     res2 = CALL fatorialRecursivo(a);
-     
-     WRITEF(res2);
-
-  
-  
-
-
-     
+	RESULTIS 0;
 }

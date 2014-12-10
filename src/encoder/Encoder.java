@@ -27,6 +27,7 @@ public class Encoder implements Visitor{
 	private StringBuffer buffer;
 	private int numberLocalVar;
 	private Vector scopes;
+	private int numberOfDivisions;
 
 	public Encoder() {
 		this.file = new File("C:\\MinGW\\bin\\teste.asm");
@@ -34,6 +35,7 @@ public class Encoder implements Visitor{
 		this.asm = new Arquivo(this.file.toString(), this.file.toString());
 		this.buffer = new StringBuffer();
 		this.numberLocalVar = 0;
+		this.numberOfDivisions = 0;
 		this.scopes = new Vector<>();
 	}
 	
@@ -1104,8 +1106,28 @@ public class Encoder implements Visitor{
 				Operator opTemp = operators.get(operators.size()-1);
 				lastOp = (String) (opTemp.visit(this,arg));
 				if(valorRight != null){
-					
-					this.buffer.append("\n"+tab+"push dword " + ( (String) valorRight));
+					if(!lastOp.equals("idiv")){
+						this.buffer.append("\n"+tab+"push dword " + ( (String) valorRight));
+					}
+					else{
+						this.numberOfDivisions++;
+						this.buffer.append("\n"+tab+"push dword 0\n");
+						this.buffer.append("\n"+tab+"pop ebx");
+						this.buffer.append("\n"+tab+"pop eax");
+						this.buffer.append("\n"+tab+"cmp eax, ebx\n");
+						this.buffer.append("\n"+tab+"jl _neg_div_" + this.numberOfDivisions +"\n");
+						this.buffer.append("\n"+tab+"mov edx, 0");
+						this.buffer.append("\n"+tab+"jmp _final_" + this.numberOfDivisions + "\n");
+						this.buffer.append("\n"+tab+"_neg_div_" + this.numberOfDivisions +":\n");
+						this.buffer.append("\n"+tab+"mov edx, -1");
+						this.buffer.append("\n"+tab+"_final_" + this.numberOfDivisions +":\n");
+						this.buffer.append("\n"+tab+"push dword " + ( (String) valorRight));
+						this.buffer.append("\n"+tab+"pop ebx");
+						this.buffer.append("\n"+tab+"idiv ebx");
+						this.buffer.append("\n"+tab+"push eax");
+					//	this.numberOfDivisions--;
+						return null;
+					}
 				}
 			}
 			else{
@@ -1118,20 +1140,81 @@ public class Encoder implements Visitor{
 					if(j+1 < others.size()){
 						//Object valorNext = others.get(numFactor+1).visit(this, arg);
 						Object valorNext = others.get(j+1).visit(this, arg);
+						Operator opTemp = operators.get(numOp);
+						lastOp = (String)(opTemp.visit(this, arg));
 						if(valorRight != null){
 							this.buffer.append("\n"+tab+"push dword " + ((String)valorRight));
 						}
 						if(valorNext != null){
-							this.buffer.append("\n"+tab+"push dword " + ((String)valorNext));
+							if(!lastOp.equals("idiv")){
+								this.buffer.append("\n"+tab+"push dword " + ((String)valorNext));
+							}
+							else{
+								this.numberOfDivisions++;
+								this.buffer.append("\n"+tab+"push dword 0\n");
+								this.buffer.append("\n"+tab+"pop ebx");
+								this.buffer.append("\n"+tab+"pop eax");
+								this.buffer.append("\n"+tab+"cmp eax, ebx\n");
+								this.buffer.append("\n"+tab+"jl _neg_div_" + this.numberOfDivisions +"\n");
+								this.buffer.append("\n"+tab+"mov edx, 0");
+								this.buffer.append("\n"+tab+"jmp _final_" + this.numberOfDivisions + "\n");
+								this.buffer.append("\n"+tab+"_neg_div_" + this.numberOfDivisions +":\n");
+								this.buffer.append("\n"+tab+"mov edx, -1");
+								this.buffer.append("\n"+tab+"_final_" + this.numberOfDivisions +":\n");
+								this.buffer.append("\n"+tab+"push dword " + ( (String) valorRight));
+								this.buffer.append("\n"+tab+"pop ebx");
+								this.buffer.append("\n"+tab+"idiv ebx");
+								this.buffer.append("\n"+tab+"push eax");
+//								this.numberOfDivisions--;
+								numOp += 2;
+								numFactor += 2;
+								continue;
+							}
 						}
-						Operator opTemp = operators.get(numOp);
-						lastOp = (String)(opTemp.visit(this, arg));
 						this.buffer.append("\n"+tab+"pop ebx");
 						this.buffer.append("\n"+tab+"pop eax");
 						this.buffer.append("\n"+tab+"" +lastOp +" eax, ebx");
-						this.buffer.append("\n\tpush dword eax");
-						numOp += 2;
-						numFactor += 2;
+						this.buffer.append("\n" + tab + "push dword eax");
+//						
+//						if(lastOp.equals("idiv")){
+//							this.numberOfDivisions++;
+//							this.buffer.append("\n"+tab+"cmp eax, ebx\n");
+//							this.buffer.append("\n"+tab+"jl _neg_div_" + this.numberOfDivisions +"\n");
+//							this.buffer.append("\n"+tab+"mov edx, 0");
+//							this.buffer.append("\n"+tab+"jmp _final_" + this.numberOfDivisions + "\n");
+//							this.buffer.append("\n"+tab+"_neg_div_" + this.numberOfDivisions +":\n");
+//							this.buffer.append("\n"+tab+"mov edx, -1");
+//							this.buffer.append("\n"+tab+"_final_" + this.numberOfDivisions +":\n");
+//							this.buffer.append("\n"+tab+"push dword\n");
+//							
+//							
+//							
+//							/*push dword -12
+//push dword 0
+//pop ebx
+//pop eax
+//cmp eax, ebx
+//jl _neg
+//mov edx, 0
+//jmp _final
+//_neg:
+//mov edx, -1
+//_final:
+//push dword 4
+//pop ebx
+//idiv ebx
+//push eax
+//							 * 
+//							 * 
+//							 * 
+//							 * */
+//							
+//						}
+//						else{
+//						
+//						}
+//						numOp += 2;
+//						numFactor += 2;
 					}
 					else{
 						Object valorNext = others.get(j).visit(this, arg);
@@ -1139,8 +1222,13 @@ public class Encoder implements Visitor{
 						this.buffer.append("\n"+tab+"push dword " + ((String)valorNext));
 						this.buffer.append("\n"+tab+"pop ebx");
 						this.buffer.append("\n"+tab+"pop eax");
-						this.buffer.append("\n"+tab+"" +lastOp +" eax, ebx");
-						this.buffer.append("\n"+tab+"push dword eax");
+						if(lastOp.equals("idiv")){
+							
+						}
+						else{
+							this.buffer.append("\n"+tab+"" +lastOp +" eax, ebx");
+							this.buffer.append("\n"+tab+"push dword eax");
+						}
 					}
 					
 					/*
@@ -1154,11 +1242,31 @@ public class Encoder implements Visitor{
 				}
 				lastOp = (String)operators.get(0).visit(this, arg);
 			}
-			
-			this.buffer.append("\n"+tab+"pop ebx ");
-			this.buffer.append("\n"+tab+"pop eax ");
-			this.buffer.append("\n"+tab+"" + lastOp + " eax, ebx");
-			this.buffer.append("\n"+tab+"push dword eax");
+			if(!lastOp.equals("idiv")){
+				this.buffer.append("\n"+tab+"pop ebx ");
+				this.buffer.append("\n"+tab+"pop eax ");
+				this.buffer.append("\n"+tab+"" + lastOp + " eax, ebx");
+				this.buffer.append("\n"+tab+"push dword eax");
+			}
+			else{
+				this.numberOfDivisions++;
+				this.buffer.append("\n"+tab+"push dword 0\n");
+				this.buffer.append("\n"+tab+"pop ebx");
+				this.buffer.append("\n"+tab+"pop eax");
+				this.buffer.append("\n"+tab+"cmp eax, ebx\n");
+				this.buffer.append("\n"+tab+"jl _neg_div_" + this.numberOfDivisions +"\n");
+				this.buffer.append("\n"+tab+"mov edx, 0");
+				this.buffer.append("\n"+tab+"jmp _final_" + this.numberOfDivisions + "\n");
+				this.buffer.append("\n"+tab+"_neg_div_" + this.numberOfDivisions +":\n");
+				this.buffer.append("\n"+tab+"mov edx, -1");
+				this.buffer.append("\n"+tab+"_final_" + this.numberOfDivisions +":\n");
+				this.buffer.append("\n"+tab+"push dword " + ( (String) valorLeft));
+				this.buffer.append("\n"+tab+"pop ebx");
+				this.buffer.append("\n"+tab+"idiv ebx");
+				this.buffer.append("\n"+tab+"push eax");
+//				this.numberOfDivisions--;
+				
+			}
 			
 		}
 		else{
